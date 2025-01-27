@@ -1,0 +1,11 @@
+afterEvaluate {
+    tasks.withType(JavaExec).configureEach {
+        if (name.contains("scoverage")) {
+            if (mainClass.isPresent()) {
+                throw new GradleException("mainClass is already set to '${mainClass.get()}' after evaluation for task: $name")
+            } else {
+                mainClass.set("com.example.MainClass")
+            }
+        }
+    }
+}
