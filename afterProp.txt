@@ -9,3 +9,28 @@ afterEvaluate {
         }
     }
 }
+tasks.named("reportScoverage") {
+    doFirst {
+        if (mainClass.orNull == null) {
+            mainClass.set("com.example.MainClass")
+            println("Setting mainClass for reportScoverage")
+        } else {
+            println("mainClass is already set, skipping")
+        }
+    }
+}
+
+tasks.named("test") {
+    finalizedBy("reportScoverage")
+}
+
+tasks.named("reportScoverage") {
+    doFirst {
+        if (mainClass.orNull == null) {
+            mainClass.set("com.example.MainClass")
+            println("Setting mainClass for reportScoverage")
+        } else {
+            println("mainClass is already set, skipping")
+        }
+    }
+}
