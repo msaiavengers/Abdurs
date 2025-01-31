@@ -64,6 +64,24 @@ Update the profile_data and latest_version in user_profiles.
 | updated_at        |          +---------------------------+
 +-------------------+
 
+profile_id: Unique identifier for each profile (allows multiple profiles per user)
+user_id: Foreign key to link the profile to a specific user in the users table
+profile_name: A name for the profile (e.g., "Work", "Home", etc.)
+profile_data: Stores the actual profile settings in a flexible JSONB format
+latest_version: Tracks the current version of the profile
+created_at: Timestamp for when the profile was first created
+updated_at: Timestamp for when the profile was last updated
+
+version_id: Unique identifier for each profile version
+profile_id: Foreign key linking to the user_profiles table
+version: The version number for the profile settings at the time of creation
+profile_data: The profile settings data for this specific version
+created_at: Timestamp for when this version of the profile was created
+
+idx_user_profiles_user_id: Index to speed up searches based on user_id
+idx_user_profile_versions_profile_id: Index to speed up searches based on profile_id
+idx_user_profile_versions_version: Index to speed up searches based on version number
+
 
 1. Insert a New Profile
 When a user creates a profile for the first time:
