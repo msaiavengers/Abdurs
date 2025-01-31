@@ -1,3 +1,20 @@
+tasks.named("testScoverage") {
+    finalizedBy("reportScoverage")
+}
+
+tasks.named("reportScoverage") {
+    doFirst {
+        println("Running reportScoverage. mainClass: ${mainClass.orNull}")
+    }
+}
+
+
+gradle.taskGraph.whenReady { graph ->
+    println("Task Graph Ready. Checking mainClass:")
+    println("mainClass: ${mainClass.orNull}")
+}
+
+
 tasks.named("reportScoverage") {
     doFirst {
         if (mainClass.isPresent()) {
