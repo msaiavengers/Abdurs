@@ -1,0 +1,260 @@
+-- Table for user profile data
+CREATE TABLE user_profiles (
+    profile_id SERIAL PRIMARY KEY,     -- Auto-incrementing unique identifier for the profile
+    user_id UUID REFERENCES users(user_id) ON DELETE CASCADE, -- Foreign key to users
+    profile_data JSONB NOT NULL,       -- Profile data (JSONB for flexibility)
+    latest_version INT DEFAULT 0,      -- Tracks the latest version number
+    created_at TIMESTAMP DEFAULT NOW(),-- When the profile was created
+    updated_at TIMESTAMP DEFAULT NOW() -- When the profile was last updated
+);
+
+-- Table for historical versions of user profiles
+CREATE TABLE user_profile_versions (
+    version_id SERIAL PRIMARY KEY,     -- Auto-incrementing version ID
+    profile_id INT REFERENCES user_profiles(profile_id) ON DELETE CASCADE, -- Foreign key to user_profiles
+    version INT NOT NULL,              -- Version number
+    profile_data JSONB NOT NULL,       -- Historical profile data
+    created_at TIMESTAMP DEFAULT NOW() -- When this version was created
+);
+
+-- Indexes for faster lookups
+CREATE INDEX idx_user_profiles_user_id ON user_profiles(user_id);
+CREATE INDEX idx_user_profile_versions_profile_id ON user_profile_versions(profile_id);
+CREATE INDEX idx_user_profile_versions_version ON user_profile_versions(version);
+
+ How Versioning Works:
+When a new profile is created:
+latest_version starts at 0 (or 1 if preferred).
+When a profile is updated:
+The old version is saved in user_profile_versions.
+latest_version increments by 1 in user_profiles.
+
+1. profile_id
+The profile_id  auto-increment integer .
+
+It uniquely identifies each profile in the user_profiles table.
+
+It does not change when the profile is updated. Instead, a new version is created in the user_profile_versions table.
+
+2. Fetching Profile Data
+When a user logs in, you can fetch their profile data using their user_id:
+returns the current profile data and the latest version number.
+
+SELECT profile_id, profile_data, latest_version
+FROM user_profiles
+WHERE user_id = '123e4567-e89b-12d3-a456-426614174000';
+
+3. Updating Profile Data
+When the profile is updated:
+
+Save the current profile data as a new version in user_profile_versions.
+
+Update the profile_data and latest_version in user_profiles.
+
+
+
++-------------------+          +---------------------------+
+| user_profiles     |          | user_profile_versions     |
++-------------------+          +---------------------------+
+| profile_id (PK)   |<-------->| profile_id (FK)           |
+| user_id (FK)      |          | version_id (PK)           |
+| profile_data      |          | version                   |
+| latest_version    |          | profile_data              |
+| created_at        |          | created_at                |
+| updated_at        |          +---------------------------+
++-------------------+
+
+
+1. Insert a New Profile
+When a user creates a profile for the first time:
+
+INSERT INTO user_profiles (user_id, profile_data)
+VALUES ('123e4567-e89b-12d3-a456-426614174000', '{"theme": "dark", "language": "en"}');
+
+********************
+
+Single Profile
+-- Table to store the current profile for each user (1 profile per user)
+CREATE TABLE user_profiles (
+    user_id UUID PRIMARY KEY REFERENCES users(user_id) ON DELETE CASCADE,  
+    profile_data JSONB NOT NULL,        
+    latest_version INT DEFAULT 0,       
+    created_at TIMESTAMP DEFAULT NOW(), 
+    updated_at TIMESTAMP DEFAULT NOW()  
+);
+
+-- Table to store historical versions of user profiles
+CREATE TABLE user_profile_versions (
+    version_id SERIAL PRIMARY KEY,      
+    user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,  
+    version INT NOT NULL,               
+    profile_data JSONB NOT NULL,        
+    created_at TIMESTAMP DEFAULT NOW()  
+);
+
+-- Indexes
+CREATE INDEX idx_user_profile_versions_user_id ON user_profile_versions(user_id);
+CREATE INDEX idx_user_profile_versions_version ON user_profile_versions(version);
+
+
+
+Multiple Profiles
+-- user_profiles.profile_id is Primary Key, so one user can have multiple profiles.
+-- profile_name helps users differentiate between multiple profiles.
+-- user_profile_versions.profile_id stores historical versions per profile.
+
+-- Table to store multiple profiles per user
+CREATE TABLE user_profiles (
+    profile_id SERIAL PRIMARY KEY,     
+    user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,  
+    profile_name TEXT NOT NULL,        -- To differentiate multiple profiles
+    profile_data JSONB NOT NULL,        
+    latest_version INT DEFAULT 0,       
+    created_at TIMESTAMP DEFAULT NOW(), 
+    updated_at TIMESTAMP DEFAULT NOW()  
+);
+
+-- Table to store historical versions of user profiles
+CREATE TABLE user_profile_versions (
+    version_id SERIAL PRIMARY KEY,      
+    profile_id INT REFERENCES user_profiles(profile_id) ON DELETE CASCADE,  
+    version INT NOT NULL,               
+    profile_data JSONB NOT NULL,        
+    created_at TIMESTAMP DEFAULT NOW()  
+);
+
+-- Indexes
+CREATE INDEX idx_user_profiles_user_id ON user_profiles(user_id);
+CREATE INDEX idx_user_profile_versions_profile_id ON user_profile_versions(profile_id);
+CREATE INDEX idx_user_profile_versions_version ON user_profile_versions(version);
+
+
+When **multiple profiles per user** is allowed, the structure of the `user_profiles` table will change slightly to accommodate multiple profiles for each user. Each profile will have a unique `profile_id`, and users can have multiple rows in the `user_profiles` table.
+
+Here's how it works:
+
+### **Schema for Multiple Profiles per User**
+
+#### **1. `user_profiles` Table:**
+- Each user can have multiple profiles, so `user_id` can appear in multiple rows.
+- Each profile will have a unique `profile_id` (a separate primary key).
+- A `profile_name` can be added to differentiate between profiles (optional but useful).
+
+#### **Table Structure:**
+
+```sql
+-- Table to store multiple profiles per user
+CREATE TABLE user_profiles (
+    profile_id SERIAL PRIMARY KEY,     -- Unique profile ID (allows multiple profiles per user)
+    user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,  -- Foreign key to users table
+    profile_name TEXT NOT NULL,        -- Name of the profile (e.g., "Work", "Home", etc.)
+    profile_data JSONB NOT NULL,       -- Stores the profile settings in JSONB format
+    latest_version INT DEFAULT 0,      -- Tracks the latest version number of this profile
+    created_at TIMESTAMP DEFAULT NOW(),-- When the profile was created
+    updated_at TIMESTAMP DEFAULT NOW() -- When the profile was last updated
+);
+
+-- Table to store historical versions of user profiles
+CREATE TABLE user_profile_versions (
+    version_id SERIAL PRIMARY KEY,      -- Auto-incrementing version ID
+    profile_id INT REFERENCES user_profiles(profile_id) ON DELETE CASCADE,  -- Foreign key to user_profiles
+    version INT NOT NULL,               -- Version number of this profile's settings
+    profile_data JSONB NOT NULL,        -- Historical profile data
+    created_at TIMESTAMP DEFAULT NOW()  -- When this version was created
+);
+
+-- Indexes
+CREATE INDEX idx_user_profiles_user_id ON user_profiles(user_id);
+CREATE INDEX idx_user_profile_versions_profile_id ON user_profile_versions(profile_id);
+CREATE INDEX idx_user_profile_versions_version ON user_profile_versions(version);
+```
+
+---
+
+### **How Data Looks with Multiple Profiles:**
+
+#### **Example:**
+
+- **User 1** has two profiles: one for **Work** and another for **Home**.
+- Each profile is stored as a separate row in the `user_profiles` table.
+
+#### **`user_profiles` Table:**
+| profile_id | user_id                           | profile_name | profile_data                                                  | latest_version | created_at          | updated_at          |
+|------------|-----------------------------------|--------------|---------------------------------------------------------------|----------------|---------------------|---------------------|
+| 1          | 123e4567-e89b-12d3-a456-426614174000 | Work         | `{"theme": "dark", "language": "en"}`                           | 2              | 2025-01-31 08:00:00 | 2025-01-31 08:10:00 |
+| 2          | 123e4567-e89b-12d3-a456-426614174000 | Home         | `{"theme": "light", "language": "en"}`                          | 1              | 2025-01-30 15:00:00 | 2025-01-30 15:05:00 |
+
+#### **`user_profile_versions` Table (for historical versions):**
+- **Profile 1 (Work)** had 2 versions: `v1` and `v2`.
+- **Profile 2 (Home)** had only 1 version.
+
+| version_id | profile_id | version | profile_data                                                  | created_at          |
+|------------|------------|---------|---------------------------------------------------------------|---------------------|
+| 1          | 1          | 1       | `{"theme": "dark", "language": "en"}`                          | 2025-01-31 08:00:00 |
+| 2          | 1          | 2       | `{"theme": "dark", "language": "fr"}`                          | 2025-01-31 08:10:00 |
+| 3          | 2          | 1       | `{"theme": "light", "language": "en"}`                         | 2025-01-30 15:05:00 |
+
+---
+
+### **Key Points:**
+
+1. **Multiple Profiles per User:**  
+   - Each user can have multiple rows in the `user_profiles` table with different `profile_id` values.
+   - `profile_name` can be used to distinguish between profiles (e.g., "Work", "Home", etc.).
+   
+2. **Historical Versions:**  
+   - Each time a profile is updated, a new version of that profile is added to the `user_profile_versions` table with an incremented version number.
+   - `profile_id` is used in the `user_profile_versions` table to relate versions to specific profiles.
+
+Let's say you have a profile with latest_version = 2, and you update it to version 3.
+Step 1: Save current profile data as a version
+
+Insert the current profile data (version 2) into user_profile_versions
+
+Step 2: Update the profile with new data and increment the version
+
+Now, you update the latest_version in user_profiles and set the new profile data
+
+user_profiles table:
+
+The latest_version is incremented from 2 to 3.
+The new profile data is saved as the current profile.
+user_profile_versions table:
+
+A new record is inserted with the old profile data and version = 2.
+
+
+---
+
+### **Summary:**
+
+- **Single Profile per User**: The `user_id` is the primary key in `user_profiles`, and each user has one profile.
+- **Multiple Profiles per User**: `profile_id` is the primary key in `user_profiles`, allowing a user to have multiple profiles. `user_id` acts as a foreign key.
+
+---
+
+Would this setup work for your use case? 😊
+
+
+-- Main table for current user profiles
+CREATE TABLE user_profiles (
+    user_id UUID PRIMARY KEY,          -- Unique identifier for the user
+    profile_data JSONB NOT NULL,       -- Current profile data (JSONB for flexibility)
+    latest_version INT DEFAULT 0,      -- Tracks the latest version number
+    created_at TIMESTAMP DEFAULT NOW(),-- When the profile was created
+    updated_at TIMESTAMP DEFAULT NOW() -- When the profile was last updated
+);
+
+-- Table for historical versions of user profiles
+CREATE TABLE user_profile_versions (
+    version_id SERIAL PRIMARY KEY,     -- Auto-incrementing version ID
+    user_id UUID REFERENCES user_profiles(user_id) ON DELETE CASCADE, -- Foreign key to user_profiles
+    version INT NOT NULL,              -- Version number
+    profile_data JSONB NOT NULL,       -- Historical profile data
+    created_at TIMESTAMP DEFAULT NOW() -- When this version was created
+);
+
+-- Indexes for faster lookups
+CREATE INDEX idx_user_profiles_user_id ON user_profiles(user_id);
+CREATE INDEX idx_user_profile_versions_user_id ON user_profile_versions(user_id);
+CREATE INDEX idx_user_profile_versions_version ON user_profile_versions(version);
