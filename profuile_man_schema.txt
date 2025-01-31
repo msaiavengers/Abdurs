@@ -226,6 +226,33 @@ A new record is inserted with the old profile data and version = 2.
 
 ---
 
+
+
++-------------------+          +---------------------+
+|     users         |          |   user_profiles     |
++-------------------+          +---------------------+
+| user_id (PK)      |<-------->| user_id (FK)        |
+| ...               |          | profile_id (PK)     |
++-------------------+          | profile_name        |
+                               | profile_data (JSONB)|
+                               | latest_version      |
+                               | created_at          |
+                               | updated_at          |
+                               +---------------------+
+                                        |
+                                        | 1..*
+                                        |
+                               +---------------------+
+                               | user_profile_versions |
+                               +---------------------+
+                               | version_id (PK)     |
+                               | profile_id (FK)     |
+                               | version             |
+                               | profile_data (JSONB)|
+                               | created_at          |
+                               +---------------------+
+
+
 ### **Summary:**
 
 - **Single Profile per User**: The `user_id` is the primary key in `user_profiles`, and each user has one profile.
