@@ -1,3 +1,10 @@
+
+gradle.taskGraph.whenReady { graph ->
+    tasks.withType(JavaExec).configureEach {
+        println("Task: $name, mainClass: ${mainClass.orNull}")
+    }
+}
+
 tasks.named("testScoverage") {
     finalizedBy("reportScoverage")
 }
