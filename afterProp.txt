@@ -1,3 +1,15 @@
+tasks.named("reportScoverage") {
+    doFirst {
+        if (mainClass.isPresent()) {
+            println("mainClass is already set: ${mainClass.get()}, skipping reassignment.")
+        } else {
+            println("Setting mainClass for reportScoverage")
+            mainClass.set("com.ms.ied.mswatch.MSWatch")
+        }
+    }
+}
+
+
 afterEvaluate {
     tasks.withType(JavaExec).configureEach {
         if (name.contains("scoverage")) {
