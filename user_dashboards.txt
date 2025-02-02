@@ -1,0 +1,131 @@
+CREATE TABLE user_dashboards (
+    dashboard_id SERIAL PRIMARY KEY,
+    user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,  -- The user who has access
+    owner_id UUID REFERENCES users(user_id) ON DELETE CASCADE, -- The original creator/owner
+    dashboard_name TEXT NOT NULL,
+    dashboard_template JSONB NOT NULL,
+    version DECIMAL(3,1) NOT NULL DEFAULT 0.2,
+    is_shared BOOLEAN DEFAULT FALSE,                          -- Flag to indicate if this is a shared copy
+    shared_at TIMESTAMP,                                      -- When it was shared
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Index for JSONB querying
+CREATE INDEX idx_dashboard_template ON user_dashboards USING gin (dashboard_template);
+
+
+
+-- Original owner creates a dashboard
+INSERT INTO user_dashboards (user_id, owner_id, dashboard_name, dashboard_template)
+VALUES ('owner-uuid', 'owner-uuid', 'My Dashboard', '{"widget": "config"}'::jsonb);
+
+-- Share the dashboard with other users
+INSERT INTO user_dashboards 
+    (user_id, owner_id, dashboard_name, dashboard_template, is_shared, shared_at)
+SELECT 
+    unnest(ARRAY['user1-uuid', 'user2-uuid']), -- Array of users to share with
+    'owner-uuid',                              -- Original owner
+    'Shared Dashboard',                        -- Dashboard name
+    dashboard_template,                        -- Copy of the dashboard template
+    TRUE,                                      -- Mark as shared
+    NOW()                                      -- Time of sharing
+FROM user_dashboards
+WHERE dashboard_id = 1;
+
+-- Query dashboards owned by a user
+SELECT * FROM user_dashboards 
+WHERE owner_id = 'owner-uuid' AND user_id = owner_id;
+
+-- Query dashboards shared with a user
+SELECT * FROM user_dashboards 
+WHERE user_id = 'user1-uuid' AND is_shared = TRUE;
+
+-- Find who shared a dashboard with me
+SELECT 
+    ud.dashboard_id,
+    ud.dashboard_name,
+    u.name as shared_by,
+    ud.shared_at
+FROM user_dashboards ud
+JOIN users u ON ud.owner_id = u.user_id
+WHERE ud.user_id = 'my-uuid' AND ud.is_shared = TRUE;
+
+
+
+
+| dashboard_id | user_id         | owner_id      | dashboard_name            | dashboard_template                                                                                      | version | is_shared | shared_at           | created_at          |
+|--------------------------------|-------------------------------------------|---------------------------------------------------------------------------------------------------------|---------|-------    |---------------------|---------------------|
+| 1            | 123e4567-e89b   | 123e4567-e89b | Sales Analytics Dashboard | {"tce_annotation_data_points": [], "tce_widgets": {"pageId": "PageID_0.548", "widgetType": "pieChart"}} | 0       | false     | null                | 2024-02-02 10:00:00 |
+| 2            | aaa-bbb-ccc-111 | 123e4567-e89b | Sales Analytics Dashboard | {"tce_annotation_data_points": [], "tce_widgets": {"pageId": "PageID_0.548", "widgetType": "pieChart"}} | 0       | true      | 2024-02-02 10:15:00 | 2024-02-02 10:15:00 |
+| 3            | ddd-eee-fff-222 | 123e4567-e89b | Sales Analytics Dashboard | {"tce_annotation_data_points": [], "tce_widgets": {"pageId": "PageID_0.548", "widgetType": "pieChart"}} | 0       | true      | 2024-02-02 10:15:00 | 2024-02-02 10:15:00 |
+| 4            | ggg-hhh-iii-333 | 123e4567-e89b | Sales Analytics Dashboard | {"tce_annotation_data_points": [], "tce_widgets": {"pageId": "PageID_0.548", "widgetType": "pieChart"}} | 0       | true      | 2024-02-02 10:15:00 | 2024-02-02 10:15:00 |
+
+In this example:
+- Row 1 is the original dashboard (owner's copy)
+- Rows 2-4 are the shared copies for three different users
+- All shared copies point back to the original owner
+- Each has its own dashboard_id but shares the same template content
+
+Step 1: Owner Shares the Dashboard
+When the owner shares the dashboard with User2, insert a new row with is_shared = TRUE:
+User2 sees this dashboard as shared in their list.
+
+Step 2: User2 Edits the Shared Dashboard
+When User2 edits the shared dashboard:
+
+Update the owner_id to User2's user_id.
+
+Set is_shared = FALSE (since it's no longer shared, it's now owned by User2).
+
+Step 3: User2 Works on the Dashboard
+The dashboard is now fully owned by User2.
+
+3. Key Points
+Shared Dashboard:
+
+is_shared = TRUE, user_id = user2, owner_id = owner.
+
+Read-only for User2 until they edit it.
+
+After User2 Edits:
+
+is_shared = FALSE, owner_id = user2, user_id = user2.
+
+The dashboard is now owned by User2 and no longer shared.
+
+{
+    "tce_annotation_data_points": [],
+    "tce_annotations": [],
+    "tce_filters": [],
+    "tce_pages": [
+        {
+            "label": "Flow Summary",
+            "value": "PageID_0.5481031886401588",
+            "selected": false,
+            "datasetId": "6bbba59ed516e6347be65b2146073075c02409ce"
+        },
+        {
+            "label": "Time Series",
+            "value": "PageID_0.97661..."
+        }
+    ],
+    "tce_reports": {
+        "dsId": "ReportID_3lm0R6TA-rE9Zq H5MlmRdbMurHn5hBGl6DSyPik",
+        "dsName": "Asia > Dec-18_205920",
+        "parentDsId": "6bbba59ed516e6347be65b2146073075c02409ce",
+        "showInMainView": true
+    },
+    "tce_selected_dataset": "c8368a0cff7a5172466ed96cd85ccb825283e18a",
+    "tce_selected_datasets": ["c8368a0cff7a5172466ed96cd85ccb825283e18a"],
+    "tce_version": "0.2",
+    "tce_widgets": {
+        "pageId": "PageID_0.5481031886401588",
+        "widgetId": "WidgetID_0.174871409286103",
+        "settings": {
+            "widgetType": "pieChart",
+            "title": "ClientName",
+            "category": "tradingShortName",
+            "values": [...]
+        }
+    }
+}
