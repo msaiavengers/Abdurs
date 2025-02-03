@@ -1,0 +1,251 @@
+-- Users table
+CREATE TABLE users (
+    user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email TEXT UNIQUE NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Groups table
+CREATE TABLE groups (
+    group_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    group_name TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Group Members table (joins users to groups)
+CREATE TABLE group_members (
+    group_id UUID REFERENCES groups(group_id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    PRIMARY KEY (group_id, user_id)
+);
+
+-- Dashboards table
+CREATE TABLE dashboards (
+    dashboard_id SERIAL PRIMARY KEY,
+    dashboard_name TEXT NOT NULL,
+    dashboard_template JSONB NOT NULL,
+    owner_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Dashboard Shares table
+CREATE TABLE dashboard_shares (
+    shared_id SERIAL PRIMARY KEY,
+    dashboard_id INTEGER REFERENCES dashboards(dashboard_id) ON DELETE CASCADE,
+    target_id UUID NOT NULL,  -- Can be user_id or group_id
+    target_type TEXT CHECK (target_type IN ('user', 'group')),
+    permissions TEXT CHECK (permissions IN ('read', 'read-write', 'shared')),
+    shared_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Useful indexes
+CREATE INDEX idx_dashboard_template ON dashboards USING gin (dashboard_template);
+CREATE INDEX idx_dashboard_owner ON dashboards(owner_id);
+CREATE INDEX idx_group_members_user ON group_members(user_id);
+CREATE INDEX idx_group_members_group ON group_members(group_id);
+CREATE INDEX idx_dashboard_shares_target ON dashboard_shares(target_id, target_type);
+
+
+
+
++-------------------+          +-------------------+          +-------------------+
+|      Users        |          |      Groups       |          |  Group Members    |
++-------------------+          +-------------------+          +-------------------+
+| user_id (PK)      |<-------->| group_id (PK)     |<-------->| group_id (FK)     |
+| email             |          | group_name        |          | user_id (FK)      |
+| created_at        |          | created_at        |          | created_at        |
+| updated_at        |          | updated_at        |          +-------------------+
++-------------------+          +-------------------+
+        ^                             
+        |                             
+        |                             
+        +----------
+                  |
+                  |
+          +-------------------+
+          |    Dashboards     |
+          +-------------------+
+          | dashboard_id (PK) |
+          | dashboard_name    |
+          | dashboard_template|
+          | owner_id (FK)     |
+          | created_at        |
+          | updated_at        |
+          +-------------------+
+                  ^
+                  |
+                  |
+          +-------------------+
+          | Dashboard Shares  |
+          +-------------------+
+          | shared_id (PK)    |
+          | dashboard_id (FK) |
+          | target_id         |
+          | target_type       |
+          | permissions       |
+          | shared_at         |
+          +-------------------+
+Tables:
+dashboards - Main dashboard table, owned by users
+dashboard_shares - Tracks how dashboards are shared (with users or groups) and permission
+users - user infor
+groups - Group definitions
+group_members - Many-to-many relationship between users and groups
+
+Workflow
+1. User1 create dashboard : 'Sales Dashboard' (Entry made into dashboards table)
+2. User1 Shares with Group : mset-group - with read-write permissions - new entry into dashboard_shares - target_type as User 
+3. When User2 (who is in mset-group) edits the dashboard: Create a new personal copy for User2 (When the user first attempts to edit the shared dashboard or When the user explicitly chooses to "Make a Copy" or "Create Personal Version" from the UI)
+4. When User1 shares the dashboard with another user (e.g., User3), the process is similar to sharing with a group, but the target_type in the dashboard_shares table will be 'user' instead of 'group'.
+
+Users see dashboards they own + dashboards shared with them (directly or via groups)
+If a user wants to edit a shared dashboard:
+
+If they have read-only access: They can't edit
+If they have read-write access: System creates a new dashboard entry owned by them
+The original dashboard remains unchanged
+The new copy becomes their personal version
+
+This way:
+
+Original dashboard stays intact
+Each user gets their own copy when they want to make changes
+Group sharing is for access control
+
+
+1. Original Dashboard Creation:
+-- User1 creates their dashboard
+INSERT INTO dashboards (owner_id, dashboard_name, dashboard_template) 
+VALUES ('user1-uuid', 'Sales Dashboard', '{...}');
+
+2. Sharing with Group:
+-- User1 shares the dashboard with Marketing Group
+INSERT INTO dashboard_shares (dashboard_id, target_id, target_type, permissions)
+VALUES (1, 'mset-group-uuid', 'group', 'read-write');
+
+3 . When User2 (who is in Marketing Group) edits the dashboard:
+-- Create a new personal copy for User2 (When the user first attempts to edit the shared dashboard or When the user explicitly chooses to "Make a Copy" or "Create Personal Version" from the UI)
+INSERT INTO dashboards (
+    owner_id,
+    dashboard_name,
+    dashboard_template,
+    version
+)
+SELECT 
+    'user2-uuid',           -- New owner (User2)
+    dashboard_name,         -- Same name
+    dashboard_template,     -- Same template (which User2 will then modify)
+    version
+FROM dashboards 
+WHERE dashboard_id = 1;     -- Original dashboard
+
+
+So the flow would be:
+
+Users see dashboards they own + dashboards shared with them (directly or via groups)
+If a user wants to edit a shared dashboard:
+
+If they have read-only access: They can't edit
+If they have read-write access: System creates a new dashboard entry owned by them
+The original dashboard remains unchanged
+The new copy becomes their personal version
+
+This way:
+
+Original dashboard stays intact
+Each user gets their own copy when they want to make changes
+Group sharing is for access control
+
+
+
+-- Dashboard table with only user ownership
+CREATE TABLE dashboards (
+    dashboard_id SERIAL PRIMARY KEY,
+    dashboard_name TEXT NOT NULL,
+    dashboard_template JSONB NOT NULL,
+    owner_id UUID REFERENCES users(user_id) ON DELETE CASCADE,  -- Only users can own dashboards
+    version DECIMAL(3,1) NOT NULL DEFAULT 0.2,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE dashboard_shares (
+    shared_id SERIAL PRIMARY KEY,
+    dashboard_id INTEGER REFERENCES dashboards(dashboard_id) ON DELETE CASCADE,
+    target_id UUID NOT NULL,  
+    target_type TEXT CHECK (target_type IN ('user', 'group')),
+    permissions TEXT CHECK (permissions IN ('read', 'read-write', 'shared')),
+    shared_at TIMESTAMP DEFAULT NOW()
+);
+
+-- When a user logs in, here's how to get all their accessible dashboards:
+SELECT DISTINCT d.*
+FROM dashboards d
+WHERE 
+    -- Dashboards owned by the user
+    d.owner_id = '123e4567-e89b-12d3-a456-426614174000'
+    OR 
+    -- Dashboards shared directly with the user
+    EXISTS (
+        SELECT 1 
+        FROM dashboard_shares ds 
+        WHERE ds.dashboard_id = d.dashboard_id 
+            AND ds.target_type = 'user' 
+            AND ds.target_id = '123e4567-e89b-12d3-a456-426614174000'
+    )
+    OR 
+    -- Dashboards shared with any group the user belongs to
+    EXISTS (
+        SELECT 1 
+        FROM dashboard_shares ds 
+        JOIN group_members gm ON ds.target_id = gm.group_id 
+        WHERE ds.dashboard_id = d.dashboard_id 
+            AND ds.target_type = 'group' 
+            AND gm.user_id = '123e4567-e89b-12d3-a456-426614174000'
+    );
+
+
+
+SELECT 
+    d.*,
+    CASE 
+        WHEN d.owner_id = '123e4567-e89b-12d3-a456-426614174000' THEN 'owner'
+        ELSE COALESCE(
+            -- Get direct user share permission
+            (SELECT ds.permissions 
+             FROM dashboard_shares ds 
+             WHERE ds.dashboard_id = d.dashboard_id 
+                AND ds.target_type = 'user' 
+                AND ds.target_id = '123e4567-e89b-12d3-a456-426614174000'),
+            -- Get group share permission
+            (SELECT ds.permissions 
+             FROM dashboard_shares ds 
+             JOIN group_members gm ON ds.target_id = gm.group_id 
+             WHERE ds.dashboard_id = d.dashboard_id 
+                AND ds.target_type = 'group' 
+                AND gm.user_id = '123e4567-e89b-12d3-a456-426614174000'
+             LIMIT 1)
+        )
+    END as access_level
+FROM dashboards d
+WHERE 
+    d.owner_id = '123e4567-e89b-12d3-a456-426614174000'
+    OR EXISTS (
+        SELECT 1 
+        FROM dashboard_shares ds 
+        WHERE ds.dashboard_id = d.dashboard_id 
+            AND ds.target_type = 'user' 
+            AND ds.target_id = '123e4567-e89b-12d3-a456-426614174000'
+    )
+    OR EXISTS (
+        SELECT 1 
+        FROM dashboard_shares ds 
+        JOIN group_members gm ON ds.target_id = gm.group_id 
+        WHERE ds.dashboard_id = d.dashboard_id 
+            AND ds.target_type = 'group' 
+            AND gm.user_id = '123e4567-e89b-12d3-a456-426614174000'
+    );
