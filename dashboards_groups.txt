@@ -49,7 +49,43 @@ CREATE INDEX idx_group_members_user ON group_members(user_id);
 CREATE INDEX idx_group_members_group ON group_members(group_id);
 CREATE INDEX idx_dashboard_shares_target ON dashboard_shares(target_id, target_type);
 
-
++-------------------+          +-------------------+
+|      Users        |          |      Groups       |
++-------------------+          +-------------------+
+| user_id (PK)      |          | group_id (PK)     |
+| email             |          | group_name        |
+| created_at        |          | created_at        |
+| updated_at        |          | updated_at        |
++-------------------+          +-------------------+
+        ^                             
+        |                             
+        |                             
+        +---------+
+                  |
+                  |
+          +-------------------+
+          |    Dashboards     |
+          +-------------------+
+          | dashboard_id (PK) |
+          | dashboard_name    |
+          | dashboard_template|
+          | owner_id (FK)     |
+          | created_at        |
+          | updated_at        |
+          +-------------------+
+                  ^
+                  |
+                  |
+          +-------------------+
+          | Dashboard Shares  |
+          +-------------------+
+          | shared_id (PK)    |
+          | dashboard_id (FK) |
+          | target_id         |
+          | target_type       |
+          | permissions       |
+          | shared_at         |
+          +-------------------+
 
 
 +-------------------+          +-------------------+          +-------------------+
