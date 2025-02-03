@@ -60,6 +60,23 @@ WHERE ud.user_id = 'my-uuid' AND ud.is_shared = TRUE;
 | 3            | ddd-eee-fff-222 | 123e4567-e89b | Sales Analytics Dashboard | {"tce_annotation_data_points": [], "tce_widgets": {"pageId": "PageID_0.548", "widgetType": "pieChart"}} | 0       | true      | 2024-02-02 10:15:00 | 2024-02-02 10:15:00 |
 | 4            | ggg-hhh-iii-333 | 123e4567-e89b | Sales Analytics Dashboard | {"tce_annotation_data_points": [], "tce_widgets": {"pageId": "PageID_0.548", "widgetType": "pieChart"}} | 0       | true      | 2024-02-02 10:15:00 | 2024-02-02 10:15:00 |
 
++-------------------+          +-------------------+
+|      User         |          |    Dashboard      |
++-------------------+          +-------------------+
+| user_id (PK)      |<-------->| dashboard_id (PK) |
++-------------------+          +-------------------+
+                                | dashboard_name    |
+                                | dashboard_template|
+                                | version           |
+                                | is_shared         |
+                                | shared_at         |
+                                | updated_at        |
+                                | user_id (FK)      |
+                                | owner_id (FK)     |
+                                +-------------------+
+
+
+
 In this example:
 - Row 1 is the original dashboard (owner's copy)
 - Rows 2-4 are the shared copies for three different users
