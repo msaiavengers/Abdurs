@@ -1,0 +1,49 @@
+plugins {
+    id 'scala'
+    id 'jacoco'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.scala-lang:scala-library:2.12.12'
+    testImplementation 'org.scalatest:scalatest_2.12:3.2.16'
+    testImplementation 'junit:junit:4.13.2'
+}
+
+jacoco {
+    toolVersion = "0.8.8" // Ensure you're using a compatible version
+}
+
+tasks.withType(Test).configureEach {
+    finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+    dependsOn test // Ensure test runs before generating the report
+    reports {
+        xml.required = true
+        csv.required = false
+        html.required = true
+    }
+
+    // Ensure Scala classes are included in coverage report
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, include: '**/*.class', exclude: '**/SomeExcludedClass*.class')
+        }))
+    }
+}
+
+// Task to check coverage threshold (Optional)
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.8 // Set your coverage threshold
+            }
+        }
+    }
+}
