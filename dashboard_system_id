@@ -1,0 +1,26 @@
+Example of system templates/dashboard
+
+1. System dashboard (dashboard_id = 3) persisted dashboard table with system template owned by proid ptce
+2. User UUID-2 when they clone or copy the System dashboard - e.g.  Global Trading View → New entry made into Dashboard table (dashboard_id = 4) with user_id UUID_2
+3. Original System dashboard (dashboard_id = 3) remains unchanged
+  
++----------+-----------------+---------------------+---------------------+
+| user_id  | email           | created_at          | updated_at          |
++----------+-----------------+---------------------+---------------------+
+| UUID-1   | user1@ms.com    | 2025-02-04 09:55:00 | 2025-02-04 09:55:00 |
+| UUID-2   | user2@ms.com    | 2025-02-04 09:56:00 | 2025-02-04 09:56:00 |
+| UUID-3   | user3@ms.com    | 2025-02-04 09:57:00 | 2025-02-04 09:57:00 |
+| ptce     | NULL            | 2025-02-04 09:50:00 | 2025-02-04 09:50:00 |
++----------+-----------------+---------------------+---------------------+
+
+
++--------------+--------------------------+--------------------+--------------------------------------------------+---------------------+--------------=------+
+| dashboard_id | dashboard_name           | owner_id (user_id) | dashboard_template                               | created_at          | updated_at          |
++--------------+--------------------------+--------------------+--------------------------------------------------+---------------------+---------------------+
+| 1            | NA Market Overview       | UUID-1             | { "tce_pages": [...], "tce_reports": {...} }     | 2025-02-04 10:00:00 | 2025-02-04 10:00:00 |
+| 2            | Sales Trading Dashboard  | UUID-3             | { "tce_pages": [...], "tce_reports": {...} }     | 2025-02-04 10:05:00 | 2025-02-04 10:05:00 |
+| 3            | Global Trading View      | ptce               | { "tce_pages": [], "tce_widgets": {} }           | 2025-02-04 10:10:00 | 2025-02-04 10:10:00 |
+| 4            | Global Trading View(Copy)| UUID-2             | { "tce_pages": [...], "tce_reports": {...} }     | 2025-02-04 10:15:00 | 2025-02-04 10:15:00 |
++--------------+-------------------------+---------------------+--------------------------------------------------+---------------------+----------------=----+
+
+
