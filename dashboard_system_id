@@ -1,3 +1,31 @@
+We need to enhance user table to identofy system and users
+
++--------------------------------------+-----------------+-----------+--------+---------------------+---------------------+
+| user_id                              | email           | user_type | prod_id | created_at          | updated_at         |
++--------------------------------------+-----------------+-----------+--------+---------------------+---------------------+
+| UUID-1                               | user1@ms.com    | USER      | NULL   | 2025-02-04 09:55:00 | 2025-02-04 09:55:00 |
+| UUID-2                               | user2@ms.com    | USER      | NULL   | 2025-02-04 09:56:00 | 2025-02-04 09:56:00 |
+| UUID-3                               | user3@ms.com    | USER      | NULL   | 2025-02-04 09:57:00 | 2025-02-04 09:57:00 |
+| UUID-4                               | NULL            | SYSTEM    | PTCE   | 2025-02-04 09:50:00 | 2025-02-04 09:50:00 |
++--------------------------------------+-----------------+-----------+--------+---------------------+---------------------+
+
+
+-- Modify Users table to include user_type and system_identifier
+ALTER TABLE Users 
+ADD COLUMN user_type VARCHAR(10) NOT NULL DEFAULT 'USER', 
+ADD COLUMN system_identifier VARCHAR(50) NULL UNIQUE;
+
+-- Ensure system users have an identifier and regular users don't
+ALTER TABLE Users 
+ADD CONSTRAINT chk_user_type 
+CHECK (
+    (user_type = 'SYSTEM' AND system_identifier IS NOT NULL AND email IS NULL) OR 
+    (user_type = 'USER' AND system_identifier IS NULL AND email IS NOT NULL)
+);
+
+
+
+
 Example of system templates/dashboard
 
 1. System dashboard (dashboard_id = 3) persisted dashboard table with system template owned by proid ptce
