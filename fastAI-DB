@@ -1,0 +1,23 @@
+Sure! Here’s a more straightforward version:
+
+"Yes, you can connect PostgreSQL directly to FastAPI using libraries like `asyncpg`, `databases`, or `SQLAlchemy`. This lets you run SQL queries directly in your FastAPI route handlers without needing extra layers, like DAOs, in between. However, using a DAO layer is helpful if you want to keep your database logic separate from your app code, making it easier to manage and scale as your project grows."
+
+
+Yes, the **DAO layer** is generally considered a better design, especially for larger or more complex applications. Here’s why:
+
+1. **Separation of Concerns**: 
+   - The DAO layer keeps your database logic separate from the rest of your application. This means your FastAPI route handlers don’t get cluttered with SQL queries, making the code easier to read and maintain.
+
+2. **Scalability**:
+   - As your application grows, you'll have more complex database operations. A DAO layer provides a centralized place to manage and update those queries without touching the route handlers themselves. This makes your app easier to scale and maintain.
+
+3. **Reusability**:
+   - You can reuse DAO methods (e.g., `create_user()`, `get_user()`) across different parts of the application. If you directly write SQL in the route handlers, you might end up repeating queries in multiple places.
+
+4. **Testability**:
+   - With a DAO layer, you can more easily test your database interactions separately from the rest of your app. This is because you can mock the DAO methods in unit tests rather than worrying about the database itself.
+
+5. **Flexibility**:
+   - If you decide to switch databases or change the database schema, you only need to update the DAO layer instead of searching through every route handler where SQL queries are written.
+
+So, while directly connecting FastAPI to PostgreSQL is faster to set up and might work fine for small apps, the **DAO pattern** is a better design choice for larger or more maintainable projects.
