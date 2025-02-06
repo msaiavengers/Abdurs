@@ -1,0 +1,29 @@
+Scala 2.12 → Use Scoverage 7.0.1
+Scala 2.13 → Use Scoverage 7.0.1 or 8.1
+Scala 3.x → Use Scoverage 8.1
+
+1. Understanding the Two Parts of Scoverage
+(a) Compiler Plugin (scalac-scoverage-plugin.jar)
+This is the actual plugin that instruments the Scala code for coverage.
+It needs to match your Scala version.
+The Scoverage Gradle Plugin automatically downloads the correct version.
+(b) Runtime Library (scoverage-runtime.jar)
+This library is needed at runtime to collect coverage data.
+It must match the version of scalac-scoverage-plugin.
+
+gradle dependencies --configuration scoverage
+
+tasks.register('scoverageDependencies', DependencyReportTask) {
+    configuration = 'scoverage'
+}
+
+
+
+tasks.register('printScoverageDependencies') {
+    doLast {
+        configurations.scoverage.resolvedConfiguration.resolvedArtifacts.each {
+            println "Scoverage Dependency: ${it.moduleVersion.id}"
+        }
+    }
+}
+
