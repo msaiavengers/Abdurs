@@ -1,3 +1,53 @@
+
+
+tasks.register('checkScoverageCompatibility') {
+    doLast {
+        try {
+            // Get the Scala version
+            def scalaVersion = configurations.compileClasspath.resolvedConfiguration.resolvedArtifacts.find {
+                it.moduleVersion.id.group == 'org.scala-lang' && it.moduleVersion.id.name == 'scala-library'
+            }?.moduleVersion?.id?.version ?: 'Not Found'
+
+            // Get the Scoverage Plugin version
+            def scoveragePlugin = configurations.scoverage.resolvedConfiguration.resolvedArtifacts.find {
+                it.moduleVersion.id.group == 'org.scoverage' && it.moduleVersion.id.name.startsWith('scalac-scoverage-plugin')
+            }?.moduleVersion?.id?.version ?: 'Not Found'
+
+            // Get the Scoverage Runtime version
+            def scoverageRuntime = configurations.scoverage.resolvedConfiguration.resolvedArtifacts.find {
+                it.moduleVersion.id.group == 'org.scoverage' && it.moduleVersion.id.name.startsWith('scalac-scoverage-runtime')
+            }?.moduleVersion?.id?.version ?: 'Not Found'
+
+            // Print the versions
+            println "Scala Version: $scalaVersion"
+            println "Scoverage Plugin Version: $scoveragePlugin"
+            println "Scoverage Runtime Version: $scoverageRuntime"
+
+            // Check for mismatches but don't fail
+            if (scalaVersion == 'Not Found') {
+                println "Warning: Scala version not found"
+            } else if (scoveragePlugin == 'Not Found') {
+                println "Warning: Scoverage Plugin not found"
+            } else if (scoverageRuntime == 'Not Found') {
+                println "Warning: Scoverage Runtime not found"
+            } else {
+                // Check version compatibility
+                if (scalaVersion.startsWith('2.12') && !scoveragePlugin.startsWith('2.12')) {
+                    println "Warning: Expected Scoverage Plugin for Scala 2.12 but found $scoveragePlugin"
+                }
+                if (scalaVersion.startsWith('2.13') && !scoveragePlugin.startsWith('2.13')) {
+                    println "Warning: Expected Scoverage Plugin for Scala 2.13 but found $scoveragePlugin"
+                }
+                if (scoveragePlugin != scoverageRuntime) {
+                    println "Warning: Scoverage Plugin ($scoveragePlugin) and Runtime ($scoverageRuntime) should match!"
+                }
+            }
+        } catch (Exception e) {
+            println "Error checking compatibility: ${e.message}"
+        }
+    }
+}
+
 tasks.register('checkScoverageCompatibility') {
     doLast {
         def scalaVersion = configurations.compileClasspath.resolvedConfiguration.resolvedArtifacts.find {
