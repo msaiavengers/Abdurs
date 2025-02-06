@@ -6,21 +6,7 @@ CREATE TABLE users (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Groups table
-CREATE TABLE groups (
-    group_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    group_name TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
-);
 
--- Group Members table (joins users to groups)
-CREATE TABLE group_members (
-    group_id UUID REFERENCES groups(group_id) ON DELETE CASCADE,
-    user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
-    created_at TIMESTAMP DEFAULT NOW(),
-    PRIMARY KEY (group_id, user_id)
-);
 
 -- Dashboards table
 CREATE TABLE dashboards (
@@ -45,9 +31,29 @@ CREATE TABLE dashboard_shares (
 -- Useful indexes
 CREATE INDEX idx_dashboard_template ON dashboards USING gin (dashboard_template);
 CREATE INDEX idx_dashboard_owner ON dashboards(owner_id);
+CREATE INDEX idx_dashboard_shares_target ON dashboard_shares(target_id, target_type);
+
+
 CREATE INDEX idx_group_members_user ON group_members(user_id);
 CREATE INDEX idx_group_members_group ON group_members(group_id);
-CREATE INDEX idx_dashboard_shares_target ON dashboard_shares(target_id, target_type);
+-- Groups table
+CREATE TABLE groups (
+    group_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    group_name TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+
+-- Group Members table (joins users to groups)
+CREATE TABLE group_members (
+    group_id UUID REFERENCES groups(group_id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    PRIMARY KEY (group_id, user_id)
+);
+
+
 
 +-------------------+          +-------------------+
 |      Users        |          |      Groups       |
