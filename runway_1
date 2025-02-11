@@ -1,0 +1,37 @@
+--changeset your_username:tcahub_views_and_shares
+-- Drop tables from tca schema
+DROP TABLE IF EXISTS tca.view_shares;
+DROP TABLE IF EXISTS tca.tcahub_views;
+
+-- Main Table: tcahub_views (stores views owned by users)
+CREATE TABLE tca.tcahub_views (
+    view_id SERIAL PRIMARY KEY,
+    view_name TEXT NOT NULL,
+    view_template JSONB NOT NULL,
+    owner_id TEXT NOT NULL,  -- Stores user shortid from LDAP
+    created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMP DEFAULT NOW() NOT NULL,
+    type TEXT CHECK (type IN ('template', 'view', 'dataset')) NOT NULL
+);
+
+-- Table: view_shares (tracks shared views)
+CREATE TABLE tca.view_shares (
+    shared_id SERIAL PRIMARY KEY,
+    view_id INT NOT NULL REFERENCES tca.tcahub_views(view_id) ON DELETE CASCADE,
+    shared_to TEXT NOT NULL,  -- Could be a user shortid or group name
+    target_type TEXT CHECK (target_type IN ('USER', 'GROUP')) NOT NULL,
+    shared_at TIMESTAMP DEFAULT NOW() NOT NULL
+);
+
+-- Indexes for performance optimization
+CREATE INDEX tca.idx_tcahub_views_owner_id ON tca.tcahub_views(owner_id);
+CREATE INDEX tca.idx_tcahub_views_type ON tca.tcahub_views(type);
+CREATE INDEX tca.idx_view_shares_shared_to ON tca.view_shares(shared_to);
+CREATE INDEX tca.idx_view_shares_target_type ON tca.view_shares(target_type);
+CREATE INDEX tca.idx_view_shares_view_id ON tca.view_shares(view_id);
+
+-- JSONB Index for searching inside view_template
+CREATE INDEX tca.idx_tcahub_views_template ON tca.tcahub_views USING GIN (view_template);
+
+--rollback DROP TABLE IF EXISTS tca.view_shares;
+--rollback DROP TABLE IF EXISTS tca.tcahub_views;
