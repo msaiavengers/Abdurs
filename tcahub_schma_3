@@ -1,3 +1,12 @@
+SELECT schemaname, tablename, indexname 
+FROM pg_indexes 
+WHERE indexname LIKE '%tcahub_views%' 
+   OR indexname LIKE '%view_shares%';
+
+SELECT nspname FROM pg_namespace 
+WHERE nspname NOT LIKE 'pg_%' 
+  AND nspname != 'information_schema';
+
 -- Drop indexes from public schema
 DROP INDEX IF EXISTS public.idx_tcahub_views_owner_id;
 DROP INDEX IF EXISTS public.idx_tcahub_views_type;
