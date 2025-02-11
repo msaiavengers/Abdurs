@@ -1,0 +1,49 @@
+-- Create ENUM for view type
+CREATE TYPE view_type_enum AS ENUM ('TEMPLATE', 'VIEW', 'DATASET');
+
+-- Create ENUM for target type
+CREATE TYPE target_type_enum AS ENUM ('USER', 'GROUP');
+
+CREATE TABLE users (
+    user_id SERIAL PRIMARY KEY,
+    shortid TEXT UNIQUE NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT now(),
+    updated_at TIMESTAMP NOT NULL DEFAULT now()
+);
+
+CREATE TABLE tcahub_views (
+    view_id SERIAL PRIMARY KEY,
+    view_name TEXT NOT NULL,
+    view_template JSONB NOT NULL,
+    owner_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    created_at TIMESTAMP NOT NULL DEFAULT now(),
+    updated_at TIMESTAMP NOT NULL DEFAULT now(),
+    type view_type_enum NOT NULL  -- Uses ENUM instead of TEXT
+);
+
+CREATE TABLE view_shares (
+    shared_id SERIAL PRIMARY KEY,
+    view_id INT NOT NULL REFERENCES tcahub_views(view_id) ON DELETE CASCADE,
+    shared_to TEXT NOT NULL,  -- Can be a user shortid or a group name
+    target_type target_type_enum NOT NULL,  -- Uses ENUM instead of TEXT
+    shared_at TIMESTAMP NOT NULL DEFAULT now()
+);
+
+Primary Keys & Foreign Keys (Implicit Indexes)
+When you create a PRIMARY KEY or a FOREIGN KEY, PostgreSQL automatically creates a B-TREE index on that column.
+--Index for Faster shared_to Lookups (Users & Groups)
+CREATE INDEX idx_view_shares_shared_to ON view_shares(shared_to);
+
+--Index for Filtering by type (Views, Templates, Datasets)
+CREATE INDEX idx_tcahub_views_type ON tcahub_views(type);
+
+--Index for Owner-Based Queries (owner_id)
+CREATE INDEX idx_tcahub_views_owner_id ON tcahub_views(owner_id);
+
+--Index for target_type Filtering (USER vs GROUP)
+CREATE INDEX idx_view_shares_target_type ON view_shares(target_type);
+
+--JSONB Index for view_template (Full-Text Search) -NOT JUST NOW
+CREATE INDEX idx_tcahub_views_template ON tcahub_views USING GIN (view_template);
+
+
