@@ -1,3 +1,16 @@
+-- Drop indexes from public schema
+DROP INDEX IF EXISTS public.idx_tcahub_views_owner_id;
+DROP INDEX IF EXISTS public.idx_tcahub_views_type;
+DROP INDEX IF EXISTS public.idx_view_shares_shared_to;
+DROP INDEX IF EXISTS public.idx_view_shares_target_type;
+DROP INDEX IF EXISTS public.idx_view_shares_view_id;
+DROP INDEX IF EXISTS public.idx_recent_shares;
+DROP INDEX IF EXISTS public.idx_tcahub_views_template;
+
+-- Drop tables from public schema
+DROP TABLE IF EXISTS public.view_shares;
+DROP TABLE IF EXISTS public.tcahub_views;
+
 SELECT indexname
 FROM pg_indexes
 WHERE indexname = 'idx_tcahub_views_owner_id';
