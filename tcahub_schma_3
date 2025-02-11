@@ -24,9 +24,9 @@ CREATE INDEX idx_tcahub_views_type ON tcahub_views(type);
 CREATE INDEX idx_view_shares_shared_to ON view_shares(shared_to);
 CREATE INDEX idx_view_shares_target_type ON view_shares(target_type);
 CREATE INDEX idx_view_shares_view_id ON view_shares(view_id);
-
--- Index to speed up recent shares query
-CREATE INDEX idx_recent_shares ON view_shares(shared_at) WHERE shared_at > NOW() - INTERVAL '30 days';
-
+-- Index for fast lookup of views by owner (user shortid)
+CREATE INDEX idx_tcahub_views_owner_id ON tcahub_views(owner_id);
 -- JSONB Index for searching inside view_template
 CREATE INDEX idx_tcahub_views_template ON tcahub_views USING GIN (view_template);
+
+
