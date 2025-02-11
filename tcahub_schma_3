@@ -1,0 +1,32 @@
+-- Table: tcahub_views (stores views owned by users)
+CREATE TABLE tcahub_views (
+    view_id SERIAL PRIMARY KEY,
+    view_name TEXT NOT NULL,
+    view_template JSONB NOT NULL,
+    owner_id TEXT NOT NULL,  -- Stores user shortid from LDAP
+    created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMP DEFAULT NOW() NOT NULL,
+    type TEXT CHECK (type IN ('template', 'view', 'dataset')) NOT NULL
+);
+
+-- Table: view_shares (tracks shared views)
+CREATE TABLE view_shares (
+    shared_id SERIAL PRIMARY KEY,
+    view_id INT NOT NULL REFERENCES tcahub_views(view_id) ON DELETE CASCADE,
+    shared_to TEXT NOT NULL,  -- Could be a user shortid or group name
+    target_type TEXT CHECK (target_type IN ('USER', 'GROUP')) NOT NULL,
+    shared_at TIMESTAMP DEFAULT NOW() NOT NULL
+);
+
+-- Indexes for performance optimization
+CREATE INDEX idx_tcahub_views_owner_id ON tcahub_views(owner_id);
+CREATE INDEX idx_tcahub_views_type ON tcahub_views(type);
+CREATE INDEX idx_view_shares_shared_to ON view_shares(shared_to);
+CREATE INDEX idx_view_shares_target_type ON view_shares(target_type);
+CREATE INDEX idx_view_shares_view_id ON view_shares(view_id);
+
+-- Index to speed up recent shares query
+CREATE INDEX idx_recent_shares ON view_shares(shared_at) WHERE shared_at > NOW() - INTERVAL '30 days';
+
+-- JSONB Index for searching inside view_template
+CREATE INDEX idx_tcahub_views_template ON tcahub_views USING GIN (view_template);
