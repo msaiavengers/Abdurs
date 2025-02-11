@@ -1,0 +1,49 @@
+-- ENUM for view type
+CREATE TYPE view_type_enum AS ENUM ('template', 'view', 'dataset');
+
+-- ENUM for target type in view_shares
+CREATE TYPE target_type_enum AS ENUM ('USER', 'GROUP');
+
+-- Main table: tcahub_views
+CREATE TABLE tcahub_views (
+    view_id SERIAL PRIMARY KEY,
+    view_name TEXT NOT NULL,
+    view_template JSONB NOT NULL,  -- Stores JSON-based dashboard layout
+    owner_id TEXT NOT NULL,        -- Stores shortid (Kerberos ID)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    type view_type_enum NOT NULL  -- Enforces 'template', 'view', or 'dataset'
+);
+
+-- Index for searching within JSONB efficiently (optional)
+CREATE INDEX idx_tcahub_views_view_template ON tcahub_views USING GIN (view_template);
+
+-- Index on owner_id for fast lookups
+CREATE INDEX idx_tcahub_views_owner_id ON tcahub_views(owner_id);
+
+-- Table for sharing views with users or groups
+CREATE TABLE view_shares (
+    shared_id SERIAL PRIMARY KEY,
+    view_id INT NOT NULL REFERENCES tcahub_views(view_id) ON DELETE CASCADE,
+    shared_to TEXT NOT NULL,  -- Can store either user shortid or group name
+    target_type target_type_enum NOT NULL,  -- Must be 'USER' or 'GROUP'
+    shared_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes for faster lookup in view_shares
+CREATE INDEX idx_view_shares_view_id ON view_shares(view_id);
+-- Index for efficiently searching views shared with a user/group
+CREATE INDEX idx_view_shares_shared_to ON view_shares(shared_to);
+
+-- Index for fast lookup of views by owner (user shortid)
+CREATE INDEX idx_tcahub_views_owner_id ON tcahub_views(owner_id);
+
+-- Index for filtering views by type (template, view, dataset)
+CREATE INDEX idx_tcahub_views_type ON tcahub_views(type);
+
+-- Index for filtering view_shares based on target type (USER or GROUP)
+CREATE INDEX idx_view_shares_target_type ON view_shares(target_type);
+
+
+-- JSONB Index for searching inside JSONB fields (if frequent searches are done)
+CREATE INDEX idx_tcahub_views_template ON tcahub_views USING GIN (view_template);
