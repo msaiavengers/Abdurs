@@ -3,10 +3,10 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
 
-# Load environment variables from env file
+# Load environment variables from the .env file
 load_dotenv()
 
-# Database configuration from environment variables
+# Database configuration pulled from environment variables
 DB_NAME = os.getenv("pgdb")
 DB_USER = os.getenv("pguser")
 DB_HOST = os.getenv("pghost")
@@ -20,6 +20,7 @@ DB_SCHEMA = os.getenv("pgschema")
 class TcaHubDAO:
     @staticmethod
     def get_db_connection():
+        # Return a connection to the database using the provided credentials
         return psycopg2.connect(
             dbname=DB_NAME,
             user=DB_USER,
@@ -35,6 +36,7 @@ class TcaHubDAO:
 
     @staticmethod
     def create_view(view_name, view_template, owner_id, view_type):
+        # Insert a new view into the database and return its ID
         with TcaHubDAO.get_db_connection() as conn:
             with conn.cursor() as cursor:
                 cursor.execute(
@@ -49,6 +51,7 @@ class TcaHubDAO:
 
     @staticmethod
     def get_view(view_id):
+        # Retrieve a single view by its ID
         with TcaHubDAO.get_db_connection() as conn:
             with conn.cursor() as cursor:
                 cursor.execute("SELECT * FROM tcahub_views WHERE view_id = %s;", (view_id,))
@@ -56,6 +59,7 @@ class TcaHubDAO:
 
     @staticmethod
     def get_views_by_owner(owner_id):
+        # Get all views owned by a specific user
         with TcaHubDAO.get_db_connection() as conn:
           with conn.cursor() as cursor:
               cursor.execute("SELECT * FROM tcahub_views WHERE owner_id = %s;", (owner_id,))
@@ -63,6 +67,7 @@ class TcaHubDAO:
 
     @staticmethod
     def update_view(view_id, view_name=None, view_template=None, view_type=None):
+        # Update a view's details based on the provided parameters
         with TcaHubDAO.get_db_connection() as conn:
             with conn.cursor() as cursor:
                 updates = []
@@ -87,6 +92,17 @@ class TcaHubDAO:
 
     @staticmethod
     def delete_view(view_id):
+        # First, check if there are any shares linked to the view
+        shares = TcaHubDAO.get_shares_for_view(view_id)
+        if shares:
+            # If there are shares, inform the user and ask them to delete those first
+            shared_users_groups = ", ".join([f"{share['target_type']}: {share['shared_to']}" for share in shares])
+            return f"Cannot delete view. Please delete the following shares first: {shared_users_groups}"
+
+        # If no shares exist, let's proceed and delete the shares for the view
+        TcaHubDAO.delete_shares_for_view(view_id)
+
+        # Now, we can safely delete the view itself
         with TcaHubDAO.get_db_connection() as conn:
             with conn.cursor() as cursor:
                 cursor.execute("DELETE FROM tcahub_views WHERE view_id = %s;", (view_id,))
@@ -94,7 +110,26 @@ class TcaHubDAO:
                 return cursor.rowcount > 0
 
     @staticmethod
+    def get_shares_for_view(view_id):
+        # Look up all the shares related to this specific view
+        with TcaHubDAO.get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT shared_to, target_type FROM tca.view_shares WHERE view_id = %s;", (view_id,))
+                shares = cursor.fetchall()
+                return shares
+
+    @staticmethod
+    def delete_shares_for_view(view_id):
+        # Delete all shares associated with the given view ID
+        with TcaHubDAO.get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("DELETE FROM tca.view_shares WHERE view_id = %s;", (view_id,))
+                conn.commit()
+                return cursor.rowcount > 0
+
+    @staticmethod
     def share_view(view_id, shared_to, target_type):
+        # Create a new share entry to share a view with a user or group
         with TcaHubDAO.get_db_connection() as conn:
             with conn.cursor() as cursor:
                 cursor.execute(
@@ -106,9 +141,10 @@ class TcaHubDAO:
                 )
                 conn.commit()
                 return cursor.fetchone()["shared_id"]
-                      
+                       
     @staticmethod
     def get_shared_views(shared_to):
+        # Get all views that have been shared with a specific user or group
         with TcaHubDAO.get_db_connection() as conn:
             with conn.cursor() as cursor:
                 cursor.execute("SELECT * FROM view_shares WHERE shared_to = %s;", (shared_to,))
@@ -116,8 +152,10 @@ class TcaHubDAO:
 
     @staticmethod
     def revoke_share(shared_id):
+        # Revoke a specific share using the shared_id
         with TcaHubDAO.get_db_connection() as conn:
             with conn.cursor() as cursor:
                 cursor.execute("DELETE FROM view_shares WHERE shared_id = %s;", (shared_id,))
                 conn.commit()
                 return cursor.rowcount > 0
+
