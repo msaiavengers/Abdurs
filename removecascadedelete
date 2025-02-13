@@ -15,3 +15,13 @@ WHERE table_schema = 'tca'
   AND table_name = 'view_shares'
   AND constraint_type = 'FOREIGN KEY';
 
+
+SELECT conname AS constraint_name, 
+       confupdtype AS update_action,
+       confdeltype AS delete_action,
+       conrelid::regclass AS table_name,
+       confrelid::regclass AS foreign_table_name
+FROM   pg_constraint
+WHERE  conrelid = 'tca.view_shares'::regclass;
+
+
