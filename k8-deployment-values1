@@ -1,0 +1,82 @@
+kubectl create secret generic pg-mtls-cert \
+  --from-file=pgcert=/path/to/client-cert.pem \
+  --from-file=pgkey=/path/to/client-key.pem \
+  --from-file=pgrootpath=/path/to/root-cert.pem \
+  --namespace tce
+      containers:
+        - resources:
+            limits:
+              cpu: "2"
+              memory: "{{ $.Values.serviceResource.memory }}"
+            requests:
+              cpu: "1"
+              memory: "{{ $.Values.serviceRequestResource.memory }}"
+          terminationMessagePath: /dev/termination-log
+          name: profile-python
+          env:
+            - name: ABC_KDB_HOST
+              value: "{{ $.Values.kdbHost }}"
+            - name: ABC_KDB_PORT
+              value: "{{ $.Values.kdbPort }}"
+            - name: ABC_KDB_USER
+              value: "{{ $.Values.kdbUser }}"
+            - name: PGSSL_CERT
+              value: "/etc/pg-mtls/pgcert"
+            - name: PGSSL_KEY
+              value: "/etc/pg-mtls/pgkey"
+            - name: PGSSL_ROOT_CERT
+              value: "/etc/pg-mtls/pgrootpath"
+          ports:
+            - containerPort: 8000
+              protocol: TCP
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: logs
+              mountPath: /var/tmp/
+            - name: krb-tickets
+              mountPath: /var/spool/tickets
+            - name: pg-mtls-cert
+              mountPath: /etc/pg-mtls
+              readOnly: true
+          terminationMessagePolicy: File
+          image: '{{ $.Values.image.repository }}:{{ $.Values.image.tag }}'
+
+
+Add the Secret to the volumes Section
+
+      volumes:
+        - name: logs
+          emptyDir: {}
+        - name: fluentbit-config
+          configMap:
+            name: fluentbit-config
+            defaultMode: 420
+        - name: fluentbit-tls
+          secret:
+            secretName: {{ $.Values.fluentbitTls }}
+            defaultMode: 420
+        - name: dshm
+          emptyDir:
+            medium: Memory
+        - name: krb-tickets
+          emptyDir: {}
+        - name: pg-mtls-cert
+          secret:
+            secretName: pg-mtls-cert
+      {{- if .Values.secret.core }}
+        - name: certs
+          secret:
+            secretName: {{ .Values.secret.core }}
+      {{- end }}
+
+
+values.yaml
+postgres:
+  pguser: "<proid>"
+  pgdb: "<db-name>"
+  pghost: "<db-host>"
+  pgport: "5432"  # Default PostgreSQL port
+  pgpassword: "<your-password>"
+  pgcert: "/path/to/client-cert.pem"
+  pgkey: "/path/to/client-key.pem"
+  pgrootpath: "/path/to/root-cert.pem"
