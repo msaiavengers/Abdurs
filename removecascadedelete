@@ -1,0 +1,10 @@
+-- Remove the cascade delete behavior on view_shares
+-- Drop the existing foreign key constraint
+ALTER TABLE tca.view_shares 
+DROP CONSTRAINT fk_view_shares_view_id;
+
+-- Add the new foreign key constraint without ON DELETE CASCADE
+ALTER TABLE tca.view_shares
+ADD CONSTRAINT fk_view_shares_view_id
+FOREIGN KEY (view_id) REFERENCES tca.tcahub_views(view_id)
+ON DELETE RESTRICT;  -- or ON DELETE SET NULL if preferred
