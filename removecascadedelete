@@ -8,3 +8,10 @@ ALTER TABLE tca.view_shares
 ADD CONSTRAINT fk_view_shares_view_id
 FOREIGN KEY (view_id) REFERENCES tca.tcahub_views(view_id)
 ON DELETE RESTRICT;  -- or ON DELETE SET NULL if preferred
+
+SELECT constraint_name
+FROM information_schema.table_constraints
+WHERE table_schema = 'tca'
+  AND table_name = 'view_shares'
+  AND constraint_type = 'FOREIGN KEY';
+
