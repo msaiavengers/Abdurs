@@ -1,3 +1,38 @@
+import os
+import psycopg2
+from psycopg2.extras import RealDictCursor
+from dotenv import load_dotenv
+
+# Load environment variables for database connection settings
+load_dotenv()
+
+# Database configuration from environment variables
+DB_NAME = os.getenv("pgdb")
+DB_USER = os.getenv("pguser")
+DB_HOST = os.getenv("pghost")
+DB_PORT = os.getenv("pgport")
+DB_PASSWORD = os.getenv("PGPASSWORD")
+MTLS_CERT_PATH = os.getenv("pgcert")
+MTLS_KEY_PATH = os.getenv("pgkey")
+MTLS_ROOT_CERT_PATH = os.getenv("pgrootpath")
+DB_SCHEMA = os.getenv("pgschema")
+
+class TcaHubDAO:
+    @staticmethod
+    def get_db_connection():
+        # Establish a connection to the PostgreSQL database using provided settings.
+        return psycopg2.connect(
+            dbname=DB_NAME,
+            user=DB_USER,
+            host=DB_HOST,
+            port=DB_PORT,
+            sslmode='require',
+            sslcert=MTLS_CERT_PATH,
+            sslkey=MTLS_KEY_PATH,
+            sslrootcert=MTLS_ROOT_CERT_PATH,
+            cursor_factory=RealDictCursor,
+            options=f'-c search_path={DB_SCHEMA}'
+        )
 
 @staticmethod
 def create_view(view_name, view_template, owner_id, view_type):
@@ -16,6 +51,36 @@ def create_view(view_name, view_template, owner_id, view_type):
             return result["view_id"] if result else None  # Safer handling
 
 
+#    @staticmethod
+#    def create_view(view_name, view_template, owner_id, view_type):
+#        # Create a new view in the database and return the generated view ID.
+#        with TcaHubDAO.get_db_connection() as conn:
+#            with conn.cursor() as cursor:
+ #               cursor.execute(
+ #                   """
+ #                   INSERT INTO tcahub_views (view_name, view_template, owner_id, view_type)
+ #                   VALUES (%s, %s, %s, %s) RETURNING view_id;
+ #                   """,
+ #                   (view_name, view_template, owner_id, view_type)
+ #               )
+ #               conn.commit()
+ #               return cursor.fetchone()["view_id"]
+
+    @staticmethod
+    def get_view(view_id):
+        # Fetch the details of a specific view by its ID.
+        with TcaHubDAO.get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT * FROM tcahub_views WHERE view_id = %s;", (view_id,))
+                return cursor.fetchone()
+
+    @staticmethod
+    def get_views_by_owner(owner_id):
+        # Get all views owned by a specific user based on the owner ID.
+        with TcaHubDAO.get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT * FROM tcahub_views WHERE owner_id = %s;", (owner_id,))
+                return cursor.fetchall()
 
 @staticmethod
 def update_view(view_id, view_name=None, view_template=None, view_type=None):
@@ -30,17 +95,17 @@ def update_view(view_id, view_name=None, view_template=None, view_type=None):
                 params.append(view_name)
 
             if view_template:
-                updates.append("view_template = %s::jsonb")  # Ensure JSONB storage
+                updates.append("view_template = %s")  # No need for explicit `::jsonb`
                 params.append(json.dumps(view_template))  # Convert dict to JSON string
 
             if view_type:
                 updates.append("view_type = %s")
                 params.append(view_type)
 
-            if not updates:  # No updates provided, return early
+            if not updates:  # No updates provided, return False early
                 return False
 
-            params.append(view_id)  # Append view_id at the end for WHERE condition
+            params.append(view_id)  # Append view_id for WHERE condition
             query = f"""
                 UPDATE tcahub_views 
                 SET {', '.join(updates)}, updated_at = NOW() 
@@ -48,4 +113,82 @@ def update_view(view_id, view_name=None, view_template=None, view_type=None):
             """
             cursor.execute(query, tuple(params))
             conn.commit()
-            return cursor.rowcount > 0
+            return cursor.rowcount > 0  # Return True if rows were updated, else False
+
+
+#    @staticmethod
+ #   def update_view(view_id, view_name=None, view_template=None, view_type=None):
+ #       # Update details for an existing view, leaving any fields unchanged if not provided.
+ #       with TcaHubDAO.get_db_connection() as conn:
+ #           with conn.cursor() as cursor:
+ #               updates = []
+ #               params = []
+ #               if view_name:
+ #                   updates.append("view_name = %s")
+ #                   params.append(view_name)
+ #               if view_template:
+ #                   updates.append("view_template = %s")
+ #                   params.append(view_template)
+ #               if view_type:
+ #                   updates.append("view_type = %s")
+ #                   params.append(view_type)
+ #               params.append(view_id)
+                
+ #               if updates:
+ #                   query = f"UPDATE tcahub_views SET {', '.join(updates)}, updated_at = NOW() WHERE view_id = %s"
+ #                   cursor.execute(query, tuple(params))
+ #                   conn.commit()
+ #                   return cursor.rowcount > 0
+ #               return False
+
+    @staticmethod
+    def delete_view(view_id):
+        # First check if any shares exist for the view. If shares exist, notify the user.
+        # If no shares exist, proceed to delete the view itself.
+        with TcaHubDAO.get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("DELETE FROM tcahub_views WHERE view_id = %s;", (view_id,))
+                conn.commit()
+                return cursor.rowcount > 0
+
+    @staticmethod
+    def share_view(view_id, shared_to, target_type):
+        # Share a view with a specific user or group. Returns the shared ID.
+        with TcaHubDAO.get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    """
+                    INSERT INTO view_shares (view_id, shared_to, target_type)
+                    VALUES (%s, %s, %s) RETURNING shared_id;
+                    """,
+                    (view_id, shared_to, target_type)
+                )
+                conn.commit()
+                return cursor.fetchone()["shared_id"]
+
+    @staticmethod
+    def get_shared_views(shared_to):
+        # Get a list of views that a particular user or group has shared with them.
+        with TcaHubDAO.get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT * FROM view_shares WHERE shared_to = %s;", (shared_to,))
+                return cursor.fetchall()
+
+    @staticmethod
+    def delete_shares_for_view(view_id=None, share_id=None, share_to=None):
+        # Remove specific shares for a view. You can choose to delete by view_id, share_id, or share_to.
+        with TcaHubDAO.get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                if view_id:
+                    cursor.execute("DELETE FROM tca.view_shares WHERE view_id = %s;", (view_id,))
+                elif share_id:
+                    cursor.execute("DELETE FROM tca.view_shares WHERE shared_id = %s;", (share_id,))
+                elif share_to:
+                    cursor.execute("DELETE FROM tca.view_shares WHERE shared_to = %s;", (share_to,))
+                conn.commit()
+                return cursor.rowcount > 0
+
+
+
+
+
