@@ -1,3 +1,22 @@
+
+@staticmethod
+def create_view(view_name, view_template, owner_id, view_type):
+    """Create a new view in the database and return the generated view ID."""
+    with TcaHubDAO.get_db_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO tcahub_views (view_name, view_template, owner_id, view_type)
+                VALUES (%s, %s::jsonb, %s, %s) RETURNING view_id;
+                """,
+                (view_name, json.dumps(view_template), owner_id, view_type)  # Convert dict to JSON string
+            )
+            conn.commit()
+            result = cursor.fetchone()
+            return result["view_id"] if result else None  # Safer handling
+
+
+
 @staticmethod
 def update_view(view_id, view_name=None, view_template=None, view_type=None):
     """Update details for an existing view, leaving any fields unchanged if not provided."""
