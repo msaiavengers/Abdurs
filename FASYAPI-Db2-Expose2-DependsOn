@@ -1,0 +1,13 @@
+from fastapi import Depends
+
+def get_dao():
+    return TcaHubDAO()
+
+@app.post("/views/create")
+async def create_view(request: ViewCreateRequest, dao: TcaHubDAO = Depends(get_dao)):
+    try:
+        view_id = dao.create_view(request.view_name, request.view_template, request.owner_id, request.view_type)
+        return {"message": "View created successfully", "view_id": view_id}
+    except Exception as e:
+        logger.error(f"Error creating view: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error creating view")
