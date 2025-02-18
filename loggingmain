@@ -1,3 +1,75 @@
+@app.post("/views/create")
+async def create_view(request: ViewCreateRequest):
+    logger.info(f"Creating new view - Name: '{request.view_name}', Owner: {request.owner_id}, Type: {request.view_type}")
+    try:
+        view_id = TcaHubDAO.create_view(
+            request.view_name, request.view_template, request.owner_id, request.view_type
+        )
+        logger.info(f"Successfully created view with ID {view_id}")
+        return {"message": "View created successfully", "view_id": view_id}
+    except Exception as e:
+        logger.error(f"Failed to create view - Error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error creating view")
+
+@app.get("/views/{view_id}")
+async def get_view(view_id: int):
+    logger.info(f"Fetching view with ID {view_id}")
+    view = TcaHubDAO.get_view(view_id)
+    if view:
+        logger.info(f"Successfully retrieved view {view_id}")
+        return view
+    logger.warning(f"View not found with ID {view_id}")
+    raise HTTPException(status_code=404, detail="View not found")
+
+@app.get("/views/owner/{owner_id}")
+async def get_views_by_owner(owner_id: str):
+    logger.info(f"Fetching all views for owner {owner_id}")
+    views = TcaHubDAO.get_views_by_owner(owner_id)
+    logger.info(f"Retrieved {len(views)} views for owner {owner_id}")
+    return views
+
+@app.delete("/views/{view_id}")
+async def delete_view(view_id: int):
+    logger.info(f"Attempting to delete view {view_id}")
+    success = TcaHubDAO.delete_view(view_id)
+    if success:
+        logger.info(f"Successfully deleted view {view_id}")
+        return {"message": "View deleted successfully"}
+    logger.warning(f"Failed to delete view {view_id} - View not found")
+    raise HTTPException(status_code=404, detail="View not found")
+
+@app.post("/views/share")
+async def share_view(request: ShareViewRequest):
+    logger.info(f"Sharing view {request.view_id} with {request.shared_to} (type: {request.target_type})")
+    try:
+        shared_id = TcaHubDAO.share_view(request.view_id, request.shared_to, request.target_type)
+        logger.info(f"Successfully shared view {request.view_id} - Share ID: {shared_id}")
+        return {"message": "View shared successfully", "shared_id": shared_id}
+    except Exception as e:
+        logger.error(f"Failed to share view {request.view_id} - Error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error sharing view")
+
+@app.get("/views/shared/{shared_to}")
+async def get_shared_views(shared_to: str):
+    logger.info(f"Fetching shared views for {shared_to}")
+    views = TcaHubDAO.get_shared_views(shared_to)
+    logger.info(f"Retrieved {len(views)} shared views for {shared_to}")
+    return views
+
+@app.delete("/views/share/delete")
+async def delete_shares(view_id: int = None, share_id: int = None, share_to: str = None):
+    params = {k: v for k, v in {'view_id': view_id, 'share_id': share_id, 'share_to': share_to}.items() if v is not None}
+    logger.info(f"Deleting shares with parameters: {params}")
+    success = TcaHubDAO.delete_shares_for_view(view_id=view_id, share_id=share_id, share_to=share_to)
+    if success:
+        logger.info(f"Successfully deleted shares matching parameters: {params}")
+        return {"message": "Share(s) deleted successfully"}
+    logger.warning(f"No shares found matching parameters: {params}")
+    raise HTTPException(status_code=400, detail="No matching shares found")
+
+
+
+
 logger.info(f"Deleting shares with provided params: {', '.join(f'{k}={v}' for k,v in {'view_id': view_id, 'share_id': share_id, 'share_to': share_to}.items() if v is not None)}")
 
 @app.put("/views/update")
