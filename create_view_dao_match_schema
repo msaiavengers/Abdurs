@@ -10,6 +10,20 @@ example request
     "type": "view"
 }
 
+from enum import Enum
+
+class TargetType(str, Enum):
+    USER = "USER"
+    GROUP = "GROUP"
+
+from pydantic import BaseModel
+
+class ViewShareRequest(BaseModel):
+    view_id: int
+    shared_to: str  # Can be a user shortid or group name
+    target_type: TargetType  # Enforcing Enum validation
+
+
 
 
 from fastapi import HTTPException
