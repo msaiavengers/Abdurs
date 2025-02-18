@@ -1,0 +1,24 @@
+{
+      "view_name": "MLP Qtr 1 NA Overview",
+      "layout": "grid",
+      "tce_pages": [
+        {
+          "label": "Flow Summary",
+          "value": "PageID_0.5481031886401588",
+          "selected": false,
+          "datasetId": "6bbba59ed516ee347be65b2146073075c82409ce"
+        },
+        {
+          "label": "Time Series",
+          "value": "PageID_0.97661"
+        }
+      ],
+      "tce_reports": {
+        "dsId": "ReportID_31mBR6TA-rE9Z4_HSKLmKdbMuHbn5hMG16QSyPik",
+        "dsName": "str-Dec-18_205928",
+        "parentDsId": "6bbba59ed516ee347be65b2146073075c82409ce",
+        "showIdsInView": true
+      },
+      "owner_id": "shehzada",
+      "type": "view"
+    }
