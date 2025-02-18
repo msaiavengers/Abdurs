@@ -1,1 +1,11 @@
 logger.info(f"Deleting shares with provided params: {', '.join(f'{k}={v}' for k,v in {'view_id': view_id, 'share_id': share_id, 'share_to': share_to}.items() if v is not None)}")
+
+@app.put("/views/update")
+async def update_view(request: ViewUpdateRequest):
+    logger.info(f"Updating view ID {request.view_id} with changes: {', '.join(f'{k}' for k,v in {'name': request.view_name, 'template': request.view_template, 'type': request.view_type}.items() if v is not None)}")
+    success = TcaHubDAO.update_view(request.view_id, request.view_name, request.view_template, request.view_type)
+    if success:
+        logger.info(f"Successfully updated view ID {request.view_id}")
+        return {"message": "View updated successfully"}
+    logger.error(f"Failed to update view ID {request.view_id}")
+    raise HTTPException(status_code=400, detail="Update failed or no changes detected")
