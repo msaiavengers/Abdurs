@@ -1,0 +1,71 @@
+example request
+{
+    "view_name": "My Custom View",
+    "view_template": {
+        "layout": "grid",
+        "filters": ["date", "category"],
+        "theme": "dark"
+    },
+    "owner_id": "user123",
+    "type": "view"
+}
+
+
+
+from fastapi import HTTPException
+
+
+from pydantic import BaseModel
+from typing import Dict, Any
+
+class ViewCreateRequest(BaseModel):
+    view_name: str
+    view_template: Dict[str, Any]
+    owner_id: str
+    type: ViewType  # Enforcing validation using Enum
+
+
+##use this its with ENUM version
+@app.post("/views/create")
+async def create_view(request: ViewCreateRequest, dao: TcaHubDAO = Depends(get_dao)):
+    print(f"Received request: {request}")
+    
+    try:
+        print("Creating view in database...")
+        view_id = dao.create_view(request.view_name, request.view_template, request.owner_id, request.type.value)  
+        # Use `request.type.value` to get the string representation (e.g., "template")
+
+        if view_id:
+            print(f"View created successfully with ID: {view_id}")
+            return {"message": "View created successfully", "view_id": view_id}
+
+        raise HTTPException(status_code=500, detail="Failed to create view.")
+
+    except Exception as e:
+        print(f"Error creating view: {str(e)}")
+        logger.error(f"Error creating view: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error creating view")
+  
+
+@app.post("/views/create")
+async def create_view(request: ViewCreateRequest, dao: TcaHubDAO = Depends(get_dao)):
+    print(f"Received request: {request}")
+    
+    # Validate 'type' against allowed values
+    if request.type not in {"template", "view", "dataset"}:
+        raise HTTPException(status_code=400, detail="Invalid type. Must be 'template', 'view', or 'dataset'.")
+
+    try:
+        print("Creating view in database...")
+        view_id = dao.create_view(request.view_name, request.view_template, request.owner_id, request.type)
+        
+        if view_id:
+            print(f"View created successfully with ID: {view_id}")
+            return {"message": "View created successfully", "view_id": view_id}
+        
+        raise HTTPException(status_code=500, detail="Failed to create view.")
+    
+    except Exception as e:
+        print(f"Error creating view: {str(e)}")
+        logger.error(f"Error creating view: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error creating view")
