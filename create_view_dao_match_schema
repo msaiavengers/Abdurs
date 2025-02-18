@@ -24,7 +24,10 @@ class ViewShareRequest(BaseModel):
     target_type: TargetType  # Enforcing Enum validation
 
 
-
+class ViewType(str, Enum):
+    TEMPLATE = "template"
+    VIEW = "view"
+    DATASET = "dataset"
 
 from fastapi import HTTPException
 
