@@ -1,0 +1,1 @@
+logger.info(f"Deleting shares with provided params: {', '.join(f'{k}={v}' for k,v in {'view_id': view_id, 'share_id': share_id, 'share_to': share_to}.items() if v is not None)}")
