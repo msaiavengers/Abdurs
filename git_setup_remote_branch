@@ -1,3 +1,11 @@
+21st Feb
+update local branch frm main - as I know caronline updated things in kdb project
+git stash push -m "WIP: saving local changes"  # Stash your local changes
+git fetch origin  # Get the latest changes from remote
+git rebase origin/main  # Reapply your branch changes on top of the updated main
+git stash pop  # Reapply your stashed changes
+
+
 git push --set-upstream origin tcahub-profile-management
 git branch -vv
 
