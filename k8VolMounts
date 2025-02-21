@@ -1,0 +1,13 @@
+ls -l /app/certs/
+kubectl describe secret tce-psgdb-certs -n tce
+
+
+volumeMounts:
+  - name: postgres-certificates
+    mountPath: /app/certs
+    readOnly: true
+
+volumes:
+  - name: postgres-certificates
+    secret:
+      secretName: tce-psgdb-certs
