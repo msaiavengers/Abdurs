@@ -1,3 +1,8 @@
+The PostgreSQL driver rejects certificates that are world-readable (e.g., 0644),
+
+The PostgreSQL client library rejects certs with world access (0644 or 0666).
+Even if defaultMode: 0640 is applied, the application might still lack read access
+
 initContainers:
   - name: fix-cert-permissions
     image: busybox
