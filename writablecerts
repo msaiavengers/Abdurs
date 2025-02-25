@@ -5,6 +5,30 @@ initContainers:
       - sh
       - "-c"
       - |
+        echo "Checking certs directory..."
+        ls -l /etc/certs-psg || echo "Certs directory not found!"
+        echo "Copying certs..."
+        cp /etc/certs-psg/ca /tmp/certs/ca || echo "Failed to copy cert!"
+        echo "Setting permissions..."
+        chmod 0640 /tmp/certs/ca || echo "Failed to chmod!"
+        echo "Final check:"
+        ls -l /tmp/certs/ca
+    volumeMounts:
+      - name: certs-volume
+        mountPath: /etc/certs-psg
+      - name: writable-certs
+        mountPath: /tmp/certs
+
+
+
+
+initContainers:
+  - name: fix-cert-permissions
+    image: busybox
+    command:
+      - sh
+      - "-c"
+      - |
         echo "Copying certs and setting permissions..."
         cp /etc/certs-psg/ca /tmp/certs/ca
         chmod 0640 /tmp/certs/ca
