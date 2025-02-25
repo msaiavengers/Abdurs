@@ -1,0 +1,28 @@
+initContainers:
+  - name: fix-cert-permissions
+    image: busybox
+    command:
+      - sh
+      - "-c"
+      - |
+        echo "Copying certs and setting permissions..."
+        cp /etc/certs-psg/ca /tmp/certs/ca
+        chmod 0640 /tmp/certs/ca
+        ls -l /tmp/certs/ca
+    volumeMounts:
+      - name: certs-volume
+        mountPath: /etc/certs-psg
+      - name: writable-certs
+        mountPath: /tmp/certs
+containers:
+  - name: my-app
+    image: my-app-image
+    volumeMounts:
+      - name: writable-certs
+        mountPath: /etc/certs-psg  # Now app reads from the writable copy
+volumes:
+  - name: certs-volume
+    secret:
+      secretName: my-cert-secret
+  - name: writable-certs
+    emptyDir: {}  # Creates a writable temp location for certs
