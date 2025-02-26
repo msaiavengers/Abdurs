@@ -1,0 +1,6 @@
+Data Passed	Query Generated
+{ "view_id": 2 }	No update (returns False)
+{ "view_id": 2, "view_name": "New Name" }	UPDATE tcahub_views SET view_name = %s
+{ "view_id": 2, "view_template": {...} }	UPDATE tcahub_views SET view_template = %s
+{ "view_id": 2, "view_type": "dashboard" }	UPDATE tcahub_views SET view_type = %s
+{ "view_id": 2, "view_name": "New Name", "view_template": {...}, "view_type": "dashboard" }	Updates all fie
