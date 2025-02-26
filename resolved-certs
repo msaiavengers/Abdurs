@@ -1,0 +1,27 @@
+The difference in permissions is based on security best practices and how the files are typically used by PostgreSQL clients.
+
+### **Breakdown of Permissions**
+| File         | Permissions | Meaning |
+|-------------|------------|---------|
+| `key`       | `0600`     | Owner can read/write. No access for group or others. |
+| `cert`      | `0600`     | Owner can read/write. No access for group or others. |
+| `ca`        | `0640`     | Owner can read/write, group can read, others have no access. |
+
+### **Why These Permissions?**
+1. **Private Key (`key`) → `0600`**
+   - **Most sensitive file**: The private key must **never** be accessible by anyone other than the process using it.
+   - If it were `0640` or `0644`, another user on the system could read it, which is a security risk.
+
+2. **Certificate (`cert`) → `0600`**
+   - The client’s SSL certificate is **less sensitive** than the private key but should still be restricted.
+   - It's tied to authentication, so it should not be readable by anyone else.
+
+3. **Certificate Authority (`ca`) → `0640`**
+   - The CA certificate is **publicly shared** in most cases, so it **doesn’t need to be restricted as much**.
+   - The application (PostgreSQL client) may need to read it while running as a non-root user.
+   - Allowing `group read` access (`0640`) ensures that a non-root system user (e.g., `dmsa`) can read it without giving world access.
+
+### **Summary**
+- **The key file is most sensitive (`0600`)**.
+- **The certificate should also be protected (`0600`)**.
+- **The CA file can be read by the application but not by the world (`0640`)**.
