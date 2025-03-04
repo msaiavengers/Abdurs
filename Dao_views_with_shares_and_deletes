@@ -1,0 +1,46 @@
+@staticmethod
+def _get_views_with_shares(where_clause, param):
+    """Reusable method to fetch views with their share details."""
+    with TcaHubDAO.get_db_connection() as conn:
+        with conn.cursor() as cursor:
+            query = f"""
+                SELECT v.view_id, v.view_name, v.view_template, v.owner_id, v.created_at, v.updated_at, v.type,
+                       vs.shared_id, vs.shared_to, vs.target_type, vs.shared_at
+                FROM tcahub_views v
+                LEFT JOIN view_shares vs ON v.view_id = vs.view_id
+                WHERE {where_clause};
+            """
+            cursor.execute(query, (param,))
+            return cursor.fetchall()
+
+@staticmethod
+def get_view_with_shares(view_id):
+    """Fetch a specific view along with its share details."""
+    return TcaHubDAO._get_views_with_shares("v.view_id = %s", view_id)
+
+@staticmethod
+def get_views_with_shares_by_owner_id(owner_id):
+    """Fetch all views owned by a user, including their share details."""
+    return TcaHubDAO._get_views_with_shares("v.owner_id = %s", owner_id)
+
+
+--main
+@app.get("/views/{view_id}/with-shares")
+async def get_view_with_shares(view_id: int, dao: TcaHubDAO = Depends(get_dao)):
+    logger.info(f"Fetching view with shares for {view_id}")
+    view = dao.get_view_with_shares(view_id)
+    if view:
+        logger.info(f"Successfully fetched view with shares {view_id}")
+        return view
+    raise HTTPException(status_code=404, detail=f"View not found {view_id}")
+
+@app.get("/views/owner/{owner_id}/with-shares")
+async def get_views_with_shares_by_owner(owner_id: str, dao: TcaHubDAO = Depends(get_dao)):
+    logger.info(f"Fetching all views with shares for owner {owner_id}")
+    views = dao.get_views_with_shares_by_owner_id(owner_id)
+    if views:
+        logger.info(f"Retrieved {len(views)} views with shares for owner {owner_id}")
+        return views
+    raise HTTPException(status_code=404, detail=f"No views found for {owner_id}")
+
+
