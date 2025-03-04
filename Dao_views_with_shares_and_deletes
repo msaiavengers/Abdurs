@@ -1,4 +1,44 @@
- before version not returning as a dict - below should trying 0it
+--updated delete as no cascade OnDelete on the view_shares table on view_id col
+@staticmethod
+def delete_view(view_id):
+    """Delete a view only after deleting all its associated shares."""
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                # First, delete associated shares
+                cursor.execute("DELETE FROM view_shares WHERE view_id = %s;", (view_id,))
+
+                # Now, delete the view
+                cursor.execute("DELETE FROM tcahub_views WHERE view_id = %s;", (view_id,))
+                
+                conn.commit()
+                return cursor.rowcount > 0  # Returns True if the view was deleted
+    except Exception as e:
+        logger.error(f"Error deleting view {view_id}: {e}")
+        conn.rollback()  # Rollback if there's an error
+        return False  # Return False if something goes wrong
+
+@staticmethod
+def delete_view(view_id):
+    """Delete a view only after deleting all its associated shares."""
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                # First, delete associated shares
+                cursor.execute("DELETE FROM view_shares WHERE view_id = %s;", (view_id,))
+
+                # Now, delete the view
+                cursor.execute("DELETE FROM tcahub_views WHERE view_id = %s;", (view_id,))
+                
+                conn.commit()
+                return cursor.rowcount > 0  # Returns True if the view was deleted
+    except Exception as e:
+        logger.error(f"Error deleting view {view_id}: {e}")
+        conn.rollback()  # Rollback if there's an error
+        return False  # Return False if something goes wrong
+
+
+before version not returning as a dict - below should trying 0it
 @staticmethod
 def get_view(view_id):
     """Fetch the details of a specific view by its ID."""
