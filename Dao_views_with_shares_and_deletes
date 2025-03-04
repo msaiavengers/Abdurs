@@ -43,4 +43,20 @@ async def get_views_with_shares_by_owner(owner_id: str, dao: TcaHubDAO = Depends
         return views
     raise HTTPException(status_code=404, detail=f"No views found for {owner_id}")
 
+@app.delete("/views/{view_id}")
+async def delete_view(view_id: int, dao: TcaHubDAO = Depends(get_dao)):
+    logger.warning(f"Deleting view {view_id}. WARNING: This will also delete all associated shares!")
+    
+    success = dao.delete_view(view_id)
+    
+    if success:
+        logger.info(f"Successfully deleted view {view_id} and its associated shares.")
+        return {
+            "message": "View successfully deleted. All associated shares have also been removed.",
+            "view_id": view_id
+        }
+    
+    raise HTTPException(status_code=404, detail=f"Issue deleting view {view_id}. It may not exist.")
+
+
 
