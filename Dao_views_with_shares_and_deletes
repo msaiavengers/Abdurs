@@ -1,3 +1,44 @@
+@staticmethod
+def delete_view(view_id):
+    """Delete a view only after deleting all its associated shares."""
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                # Debug log before deleting shares
+                logger.debug(f"Attempting to delete shares for view {view_id}")
+                cursor.execute("DELETE FROM view_shares WHERE view_id = %s;", (view_id,))
+                
+                # Log the number of shares deleted
+                shares_deleted = cursor.rowcount
+                logger.debug(f"Deleted {shares_deleted} shares for view {view_id}")
+
+                # Now, delete the view
+                logger.debug(f"Attempting to delete view {view_id}")
+                cursor.execute("DELETE FROM tcahub_views WHERE view_id = %s;", (view_id,))
+                
+                # Log the number of views deleted
+                view_deleted = cursor.rowcount
+                logger.debug(f"Deleted {view_deleted} view(s) with ID {view_id}")
+                
+                # Commit the changes
+                conn.commit()
+
+                # Return True if the view was deleted
+                if view_deleted > 0:
+                    logger.info(f"Successfully deleted view {view_id} and associated shares.")
+                    return True
+                else:
+                    logger.warning(f"View {view_id} was not found or already deleted.")
+                    return False
+
+    except Exception as e:
+        # Log the error
+        logger.error(f"Error deleting view {view_id}: {e}")
+        
+        # Since the connection is managed by `with`, rollback is handled automatically
+        return False  # Return False if something goes wrong
+
+
 --updated delete as no cascade OnDelete on the view_shares table on view_id col
 @staticmethod
 def delete_view(view_id):
