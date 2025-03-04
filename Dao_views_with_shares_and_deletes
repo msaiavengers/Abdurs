@@ -1,3 +1,62 @@
+
+-- if we have view with no shares then the left join we could end up with view_id when evaluting the rtresults - as we nned to pick up the view_id form tcahub_vews
+@staticmethod
+def _fetch_view_details(cursor, where_clause, params):
+    """
+    Generalized method to fetch view details with a flexible WHERE clause.
+    
+    :param cursor: Database cursor
+    :param where_clause: SQL WHERE clause string
+    :param params: Parameters for the query
+    :return: Single view or list of views with their shares
+    """
+    # Combined query to fetch view details along with their associated shares
+    view_query = f"""
+        SELECT v.view_id AS v_id, v.view_name, v.view_template, v.owner_id, 
+               v.created_at, v.updated_at, v.type,
+               vs.shared_id, vs.shared_to, vs.target_type, vs.shared_at
+        FROM tcahub_views v
+        LEFT JOIN view_shares vs ON v.view_id = vs.view_id
+        WHERE {where_clause}
+    """
+    cursor.execute(view_query, params)
+    results = cursor.fetchall()
+    
+    # If no results found, return empty list
+    if not results:
+        return []
+    
+    # Process results to group shares by view
+    views_with_shares = {}
+    for row in results:
+        view_id = row['v_id']  # Ensure we always reference view_id from tcahub_views
+        
+        if view_id not in views_with_shares:
+            views_with_shares[view_id] = {
+                'view_id': view_id,
+                'view_name': row['view_name'],
+                'view_template': row['view_template'],
+                'owner_id': row['owner_id'],
+                'created_at': row['created_at'],
+                'updated_at': row['updated_at'],
+                'type': row['type'],
+                'shares': []
+            }
+        
+        # Check if there is valid share data before appending
+        if row['shared_id'] is not None:
+            share = {
+                'shared_id': row['shared_id'],
+                'shared_to': row['shared_to'],
+                'target_type': row['target_type'],
+                'shared_at': row['shared_at']
+            }
+            views_with_shares[view_id]['shares'].append(share)
+    
+    # Convert the grouped views dictionary to a list and return
+    return list(views_with_shares.values())
+
+
 @staticmethod
 def delete_view(view_id):
     """Delete a view only after deleting all its associated shares."""
