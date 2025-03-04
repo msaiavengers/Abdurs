@@ -1,3 +1,95 @@
+
+
+--rfactored as we had repeating data
+@staticmethod
+def _fetch_view_details(cursor, where_clause, params):
+    """
+    Generalized method to fetch view details with a flexible WHERE clause.
+    
+    :param cursor: Database cursor
+    :param where_clause: SQL WHERE clause string
+    :param params: Parameters for the query
+    :return: Single view or list of views with their shares
+    """
+    # Combined query to fetch view details along with their associated shares
+    view_query = f"""
+        SELECT v.view_id, v.view_name, v.view_template, v.owner_id, 
+               v.created_at, v.updated_at, v.type,
+               vs.shared_id, vs.shared_to, vs.target_type, vs.shared_at
+        FROM tcahub_views v
+        LEFT JOIN view_shares vs ON v.view_id = vs.view_id
+        WHERE {where_clause}
+    """
+    cursor.execute(view_query, params)
+    results = cursor.fetchall()
+    
+    # If no results found, return empty list
+    if not results:
+        return []
+    
+    # Process results to group shares by view
+    views_with_shares = {}
+    for row in results:
+        view_id = row['view_id']
+        if view_id not in views_with_shares:
+            views_with_shares[view_id] = {
+                'view_id': row['view_id'],
+                'view_name': row['view_name'],
+                'view_template': row['view_template'],
+                'owner_id': row['owner_id'],
+                'created_at': row['created_at'],
+                'updated_at': row['updated_at'],
+                'type': row['type'],
+                'shares': []
+            }
+        
+        # If there's share data, append it to the 'shares' list
+        if row['shared_id']:
+            share = {
+                'shared_id': row['shared_id'],
+                'shared_to': row['shared_to'],
+                'target_type': row['target_type'],
+                'shared_at': row['shared_at']
+            }
+            views_with_shares[view_id]['shares'].append(share)
+    
+    # Convert the grouped views dictionary to a list and return
+    return list(views_with_shares.values())
+
+@staticmethod
+def get_view_with_shares(view_id):
+    """Fetch a specific view along with its share details."""
+    with TcaHubDAO.get_db_connection() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
+            results = TcaHubDAO._fetch_view_details(cursor, "v.view_id = %s", (view_id,))
+            # If a single view is fetched, return the first element, otherwise the list
+            return results[0] if len(results) == 1 else results
+
+@staticmethod
+def get_views_with_shares_by_owner_id(owner_id):
+    """Fetch all views owned by a user, including their share details."""
+    with TcaHubDAO.get_db_connection() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
+            return TcaHubDAO._fetch_view_details(cursor, "v.owner_id = %s", (owner_id,))
+
+@staticmethod
+def get_view(view_id):
+    """Fetch the details of a specific view by its ID."""
+    with TcaHubDAO.get_db_connection() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
+            cursor.execute("SELECT * FROM tcahub_views WHERE view_id = %s;", (view_id,))
+            return cursor.fetchone()
+
+@staticmethod
+def get_views_by_owner(owner_id):
+    """Get all views owned by a specific user based on the owner ID."""
+    with TcaHubDAO.get_db_connection() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
+            cursor.execute("SELECT * FROM tcahub_views WHERE owner_id = %s;", (owner_id,))
+            return cursor.fetchall()
+
+--
+
 @staticmethod
 def _get_views_with_shares(where_clause, param):
     """Reusable method to fetch views with their share details."""
