@@ -1,0 +1,56 @@
+@staticmethod
+def get_shared_views_for_user_or_group(shared_to_list):
+    """Fetch views shared with a specific user or any of the groups they belong to."""
+    with TcaHubDAO.get_db_connection() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
+            cursor.execute("""
+                SELECT v.*
+                FROM tcahub_views v
+                JOIN view_shares vs ON v.view_id = vs.view_id
+                WHERE vs.shared_to = ANY(%s);
+            """, (shared_to_list,))
+            return cursor.fetchall()
+
+
+Accepts a list (shared_to_list) instead of a single shared_to value.
+Uses ANY(%s) in the SQL query to check if vs.shared_to matches any value in the list.
+Now, the frontend can send both:
+The user's shortid
+The group names they belong to
+Example Input:
+python
+Copy
+Edit
+shared_to_list = ['user_123', 'trading_team', 'risk_group']
+
+
+@staticmethod
+def create_user_copy_of_shared_view(view_id, new_owner_id):
+    """Create a new view entry for a user when they modify a shared view."""
+    with TcaHubDAO.get_db_connection() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
+            cursor.execute("""
+                INSERT INTO tcahub_views (view_name, view_template, owner_id, type)
+                SELECT view_name, view_template, %s, type
+                FROM tcahub_views
+                WHERE view_id = %s
+                RETURNING *;
+            """, (new_owner_id, view_id))
+            conn.commit()
+            return cursor.fetchone()
+
+ optimize API calls, you could create a single method that fetches both owned and shared views in one query, something like
+
+@staticmethod
+def get_all_views_for_user(owner_id, groups):
+    """Fetch all views owned by the user and views shared with them or their groups."""
+    with TcaHubDAO.get_db_connection() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
+            query = """
+                SELECT v.*
+                FROM tcahub_views v
+                LEFT JOIN view_shares vs ON v.view_id = vs.view_id
+                WHERE v.owner_id = %s OR vs.shared_to = ANY(%s);
+            """
+            cursor.execute(query, (owner_id, groups))
+            return cursor.fetchall()
