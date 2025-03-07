@@ -1,0 +1,67 @@
+GET /views/user/user_123?groups=trading_team&groups=risk_group
+Fetch all views owned by a user (including shared ones)
+This endpoint will take the user's owner_id and an optional list of group names.
+
+@app.get("/views/user/{owner_id}")
+async def get_all_views_for_user(owner_id: str, groups: List[str] = Query([]), dao: TcaHubDAO = Depends(get_dao)):
+    """
+    Get all views owned by the user and shared with their groups.
+    """
+    try:
+        views = dao.get_all_views_for_user(owner_id, groups)
+        return {"views": views}
+    except Exception as e:
+        logger.error(f"Error fetching views for user {owner_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error fetching views")
+
+GET /views/shared?shared_to_list=user_123&shared_to_list=trading_team       
+Fetch views shared with a user or group
+This endpoint allows querying views explicitly shared with a user or any of their groups.
+
+@app.get("/views/shared")
+async def get_shared_views_for_user_or_group(shared_to_list: List[str] = Query([]), dao: TcaHubDAO = Depends(get_dao)):
+    """
+    Get views that have been shared with the specified user or groups.
+    """
+    try:
+        shared_views = dao.get_shared_views_for_user_or_group(shared_to_list)
+        return {"shared_views": shared_views}
+    except Exception as e:
+        logger.error(f"Error fetching shared views: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error fetching shared views")
+
+
+
+POST /views/copy/42?new_owner_id=user_123
+
+@app.post("/views/copy/{view_id}")
+async def create_user_copy_of_shared_view(view_id: int, new_owner_id: str, dao: TcaHubDAO = Depends(get_dao)):
+    """
+    Create a user-owned copy of a shared view.
+    """
+    try:
+        new_view_id = dao.create_user_copy_of_shared_view(view_id, new_owner_id)
+        return {"message": "View copied successfully", "new_view_id": new_view_id}
+    except Exception as e:
+        logger.error(f"Error copying shared view {view_id} for user {new_owner_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error copying shared view")
+
+
+Notes
+get_all_views_for_user(owner_id, groups)
+🔹 Purpose: Fetches all views a user has access to, including:
+
+Views owned by the user (owner_id).
+Views shared with any of the user's groups (groups).
+🔹 Use case:
+
+When the UI loads a user's dashboard, this method gets everything they can see (their own views + group-shared views).
+
+get_shared_views_for_user_or_group(shared_to_list)
+🔹 Purpose: Fetches only the views explicitly shared with a specific user or group(s).
+
+Does not include views the user owns.
+Only shows views where the view_shares table has an entry for the shared_to_list value(s).
+🔹 Use case:
+
+When a user clicks "Shared Views", this method retrieves only the views that were shared with them.
