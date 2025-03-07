@@ -1,3 +1,31 @@
+✅ Ensures the view exists before copying.
+✅ Inserts a new entry with new_owner_id but keeps the original details.
+✅ Updates timestamps (created_at and updated_at) for the new copy.
+✅ Returns new_view_id, so the UI can refresh and display the copied version.
+@staticmethod
+def create_user_copy_of_shared_view(view_id, new_owner_id):
+    """Creates a personal copy of a shared view for a user."""
+    with TcaHubDAO.get_db_connection() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
+            # Check if the view still exists before copying
+            cursor.execute("SELECT * FROM tcahub_views WHERE view_id = %s;", (view_id,))
+            original_view = cursor.fetchone()
+            
+            if not original_view:
+                raise ValueError(f"View {view_id} no longer exists.")  # Handle error gracefully
+
+            # Create a new copy with the new owner
+            cursor.execute("""
+                INSERT INTO tcahub_views (view_name, view_template, owner_id, type, created_at, updated_at)
+                VALUES (%s, %s, %s, %s, NOW(), NOW()) RETURNING view_id;
+            """, (original_view['view_name'], original_view['view_template'], new_owner_id, original_view['type']))
+            
+            new_view_id = cursor.fetchone()[0]
+            conn.commit()
+
+            return new_view_id
+
+
 @staticmethod
 def get_shared_views_for_user_or_group(shared_to_list):
     """Fetch views shared with a specific user or any of the groups they belong to."""
