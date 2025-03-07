@@ -1,3 +1,11 @@
+@app.get("/views/shared")
+async def get_shared_views_for_user(
+    shared_to: str = Query("")
+):
+    shared_to_list = shared_to.split(",") if shared_to else []
+    print(f"shared_to_list received: {shared_to_list}")  # Debugging
+    return {"shared_to_list": shared_to_list}
+
 
 @app.get("/views/shared")
 async def get_shared_views_for_user_or_group(
