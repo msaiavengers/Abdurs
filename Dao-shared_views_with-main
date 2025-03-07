@@ -1,3 +1,28 @@
+
+@app.get("/views/shared")
+async def get_shared_views_for_user_or_group(
+    shared_to: List[str] = Query(None, description="List of users or groups to get shared views for"),
+    dao: TcaHubDAO = Depends(get_dao)
+):
+    """
+    Get views that have been shared with the specified user or groups.
+    """
+    try:
+        # Default to empty list if None
+        shared_to_list = shared_to or []
+        
+        print(f"Finding shared views for {shared_to_list}")
+        
+        # Make sure we're passing a list, even if there's only one value
+        if shared_to_list and not isinstance(shared_to_list, list):
+            shared_to_list = [shared_to_list]
+            
+        shared_views = dao.get_shared_views_for_user_or_group(shared_to_list)
+        return {"shared_views": shared_views}
+    except Exception as e:
+        logger.error(f"Error fetching shared views: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error fetching shared views: {str(e)}")
+
 ✅ Ensures the view exists before copying.
 ✅ Inserts a new entry with new_owner_id but keeps the original details.
 ✅ Updates timestamps (created_at and updated_at) for the new copy.
