@@ -1,0 +1,51 @@
+@staticmethod
+def get_all_views_for_user(owner_id, groups):
+    """Fetch all views owned by a user, including shared views for their groups."""
+    with TcaHubDAO.get_db_connection() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
+            # Get views owned by the user
+            owned_views = TcaHubDAO._fetch_view_details(cursor, "v.owner_id = %s", (owner_id,))
+            
+            # Get views shared with the user or their groups
+            shared_to_list = [owner_id] + groups  # Include both user ID and groups
+            cursor.execute("""
+                SELECT v.view_id, v.view_name, v.view_template, v.owner_id, v.created_at, v.updated_at, v.type,
+                       vs.shared_id, vs.shared_to, vs.target_type, vs.shared_at
+                FROM tcahub_views v
+                JOIN view_shares vs ON v.view_id = vs.view_id
+                WHERE vs.shared_to = ANY(%s);
+            """, (shared_to_list,))
+            
+            shared_views = cursor.fetchall()
+            if not shared_views:
+                shared_views = []
+
+            # Process shared views
+            views_with_shares = {}
+            for row in shared_views:
+                view_id = row['view_id']
+                if view_id not in views_with_shares:
+                    views_with_shares[view_id] = {
+                        'view_id': row['view_id'],
+                        'view_name': row['view_name'],
+                        'view_template': row['view_template'],
+                        'owner_id': row['owner_id'],
+                        'created_at': row['created_at'],
+                        'updated_at': row['updated_at'],
+                        'type': row['type'],
+                        'shares': []
+                    }
+                
+                # Add share details to the 'shares' list
+                views_with_shares[view_id]['shares'].append({
+                    'shared_id': row['shared_id'],
+                    'shared_to': row['shared_to'],
+                    'target_type': row['target_type'],
+                    'shared_at': row['shared_at']
+                })
+            
+            # Combine owned and shared views
+            return {
+                "owned_views": owned_views,
+                "shared_views": list(views_with_shares.values())
+            }
