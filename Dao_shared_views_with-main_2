@@ -1,3 +1,21 @@
+
+@staticmethod
+def get_all_views_for_user(owner_id, groups):
+    """Fetch all views owned by a user, including shared views for their groups."""
+    with TcaHubDAO.get_db_connection() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
+            # Get views owned by the user
+            owned_views = TcaHubDAO._fetch_view_details(cursor, "v.owner_id = %s", (owner_id,))
+
+            # Get views shared with the user or their groups
+            shared_to_list = [owner_id] + groups  # Include both user ID and groups
+            shared_views = TcaHubDAO._fetch_view_details(cursor, "vs.shared_to = ANY(%s)", (shared_to_list,))
+
+            return {
+                "owned_views": owned_views,
+                "shared_views": shared_views
+            }
+
 @staticmethod
 def get_all_views_for_user(owner_id, groups):
     """Fetch all views owned by a user, including shared views for their groups."""
