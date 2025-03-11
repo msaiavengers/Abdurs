@@ -1,0 +1,298 @@
+from fastapi import FastAPI, Query, Depends, HTTPException
+from typing import List
+import logging
+from dao import TcaHubDAO, get_dao
+
+logger = logging.getLogger(__name__)
+
+app = FastAPI(
+    title="TCA Hub API",
+    description="API for fetching user views and shared views.",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc"
+)
+
+@app.get(
+    "/views/user/{owner_id}", 
+    summary="Fetch all views owned by a user (including shared ones)",
+    response_model=dict,
+    responses={
+        200: {
+            "description": "A list of views owned by the user or shared with them.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "views": [
+                            {"id": "view_1", "name": "Dashboard A"},
+                            {"id": "view_2", "name": "Dashboard B"}
+                        ]
+                    }
+                }
+            }
+        },
+        500: {"description": "Internal server error"}
+    }
+)
+async def get_all_views_for_user(
+    owner_id: str,
+    groups: List[str] = Query([], description="List of group names associated with the user"),
+    dao: TcaHubDAO = Depends(get_dao)
+):
+    """Retrieve all views owned by a user, including those shared with their groups."""
+    try:
+        views = dao.get_all_views_for_user(owner_id, groups)
+        return {"views": views}
+    except Exception as e:
+        logger.error(f"Error fetching views for user {owner_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error fetching views")
+
+@app.get(
+    "/views/shared", 
+    summary="Fetch views shared with a user or group",
+    response_model=dict,
+    responses={
+        200: {
+            "description": "A list of views shared with the user or groups.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "shared_views": [
+                            {"id": "shared_1", "name": "Shared Dashboard A"},
+                            {"id": "shared_2", "name": "Shared Dashboard B"}
+                        ]
+                    }
+                }
+            }
+        },
+        500: {"description": "Internal server error"}
+    }
+)
+async def get_shared_views_for_user_or_group(
+    shared_to_list: List[str] = Query([], description="List of user shortids or group names"),
+    dao: TcaHubDAO = Depends(get_dao)
+):
+    """Retrieve views that have been explicitly shared with a user or their groups."""
+    try:
+        shared_views = dao.get_shared_views_for_user_or_group(shared_to_list)
+        return {"shared_views": shared_views}
+    except Exception as e:
+        logger.error(f"Error fetching shared views: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error fetching shared views")
+
+
+from fastapi import FastAPI, Depends, HTTPException
+from typing import Dict
+import logging
+from dao import TcaHubDAO, get_dao
+
+logger = logging.getLogger(__name__)
+
+app = FastAPI(
+    title="TCA Hub API",
+    description="API for fetching and managing user views.",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc"
+)
+
+@app.post(
+    "/views/clone/{view_id}",
+    summary="Clone a user-owned copy of a shared view",
+    response_model=Dict[str, str],
+    responses={
+        200: {
+            "description": "Successfully cloned the shared view.",
+            "content": {
+                "application/json": {
+                    "example": {"message": "View copied successfully", "new_view_id": "view_456"}
+                }
+            }
+        },
+        500: {
+            "description": "Internal server error",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Error copying shared view"}
+                }
+            }
+        }
+    }
+)
+async def clone_user_copy_of_shared_view(
+    view_id: int,
+    new_owner_id: str,
+    dao: TcaHubDAO = Depends(get_dao)
+):
+    """
+    Clone a user-owned copy of a shared view.
+
+    - **view_id**: The ID of the shared view to clone.
+    - **new_owner_id**: The user ID who will own the new cloned view.
+    
+    Returns a success message along with the new view's ID.
+    """
+    try:
+        new_view_id = dao.clone_user_copy_of_shared_view(view_id, new_owner_id)
+        return {"message": "View copied successfully", "new_view_id": new_view_id}
+    except Exception as e:
+        logger.error(f"Error cloning shared view {view_id} for user {new_owner_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error copying shared view")
+
+
+
+from fastapi import FastAPI, Depends, HTTPException, Query
+from typing import List, Optional, Dict, Any
+import logging
+from dao import TcaHubDAO, get_dao
+from models import ViewUpdateRequest, ShareViewRequest  # Ensure these models are defined
+
+logger = logging.getLogger(__name__)
+
+app = FastAPI(
+    title="TCA Hub API",
+    description="API for managing user views, sharing, and updates.",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc"
+)
+
+@app.get(
+    "/views/{view_id}",
+    summary="Retrieve a view by its ID",
+    response_model=Dict[str, Any],
+    responses={
+        200: {"description": "View retrieved successfully"},
+        404: {"description": "View not found"}
+    }
+)
+async def get_view(view_id: int, dao: TcaHubDAO = Depends(get_dao)):
+    """
+    Fetch a specific view by its unique ID.
+    
+    - **view_id**: The ID of the view to fetch.
+    """
+    view = dao.get_view(view_id)
+    if view:
+        return view
+    raise HTTPException(status_code=404, detail="View not found")
+
+@app.get(
+    "/views/owner/{owner_id}",
+    summary="Retrieve all views owned by a user",
+    response_model=List[Dict[str, Any]]
+)
+async def get_views_by_owner(owner_id: str, dao: TcaHubDAO = Depends(get_dao)):
+    """
+    Fetch all views belonging to a specific owner.
+    
+    - **owner_id**: The user ID (shortid) whose views are being requested.
+    """
+    return dao.get_views_by_owner(owner_id)
+
+@app.put(
+    "/views/update",
+    summary="Update a view",
+    response_model=Dict[str, str],
+    responses={
+        200: {"description": "View updated successfully"},
+        400: {"description": "Update failed or no changes detected"}
+    }
+)
+async def update_view(request: ViewUpdateRequest, dao: TcaHubDAO = Depends(get_dao)):
+    """
+    Update an existing view with new attributes.
+    
+    - **view_id**: The ID of the view to update.
+    - **view_name**: The new name of the view.
+    - **view_template**: The updated template JSON.
+    - **view_type**: The updated type of the view.
+    """
+    success = dao.update_view(request.view_id, request.view_name, request.view_template, request.view_type)
+    if success:
+        return {"message": "View updated successfully"}
+    raise HTTPException(status_code=400, detail="Update failed or no changes detected")
+
+@app.delete(
+    "/views/{view_id}",
+    summary="Delete a view",
+    response_model=Dict[str, str],
+    responses={
+        200: {"description": "View deleted successfully"},
+        404: {"description": "View not found"}
+    }
+)
+async def delete_view(view_id: int, dao: TcaHubDAO = Depends(get_dao)):
+    """
+    Delete a specific view by its ID.
+    
+    - **view_id**: The ID of the view to be deleted.
+    """
+    success = dao.delete_view(view_id)
+    if success:
+        return {"message": "View deleted successfully"}
+    raise HTTPException(status_code=404, detail="View not found")
+
+@app.post(
+    "/views/share",
+    summary="Share a view with a user or group",
+    response_model=Dict[str, str],
+    responses={
+        200: {"description": "View shared successfully"},
+        500: {"description": "Error sharing view"}
+    }
+)
+async def share_view(request: ShareViewRequest, dao: TcaHubDAO = Depends(get_dao)):
+    """
+    Share a view with a specific user or group.
+
+    - **view_id**: The ID of the view to share.
+    - **shared_to**: The user ID or group name.
+    - **target_type**: Whether sharing is done with a user or a group.
+    """
+    try:
+        shared_id = dao.share_view(request.view_id, request.shared_to, request.target_type)
+        return {"message": "View shared successfully", "shared_id": shared_id}
+    except Exception as e:
+        logger.error(f"Error sharing view: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error sharing view")
+
+@app.get(
+    "/views/shared/{shared_to}",
+    summary="Retrieve views shared with a user or group",
+    response_model=List[Dict[str, Any]]
+)
+async def get_shared_views(shared_to: str, dao: TcaHubDAO = Depends(get_dao)):
+    """
+    Fetch all views explicitly shared with a user or group.
+    
+    - **shared_to**: The user ID or group name to check for shared views.
+    """
+    return dao.get_shared_views(shared_to)
+
+@app.delete(
+    "/views/share/delete",
+    summary="Delete shared view permissions",
+    response_model=Dict[str, str],
+    responses={
+        200: {"description": "Share(s) deleted successfully"},
+        400: {"description": "No matching shares found"}
+    }
+)
+async def delete_shares(
+    view_id: Optional[int] = Query(None, description="ID of the view to remove sharing from"),
+    share_id: Optional[int] = Query(None, description="ID of the specific share record to delete"),
+    share_to: Optional[str] = Query(None, description="User or group name whose access should be removed"),
+    dao: TcaHubDAO = Depends(get_dao)
+):
+    """
+    Remove sharing permissions for a view.
+
+    - **view_id** (optional): The ID of the view to remove sharing from.
+    - **share_id** (optional): The specific share record ID to delete.
+    - **share_to** (optional): The user or group whose access should be revoked.
+    """
+    success = dao.delete_shares_for_view(view_id=view_id, share_id=share_id, share_to=share_to)
+    if success:
+        return {"message": "Share(s) deleted successfully"}
+    raise HTTPException(status_code=400, detail="No matching shares found")
