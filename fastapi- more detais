@@ -1,0 +1,32 @@
+from fastapi import FastAPI
+from pydantic import BaseModel, Field
+
+app = FastAPI(
+    title="My API",
+    description="This is a very fancy API, with auto docs for the API and everything.",
+    version="0.1.0",
+)
+
+class Item(BaseModel):
+    name: str = Field(..., description="The name of the item")
+    description: str = Field(None, description="A brief description of the item")
+
+@app.get("/items/", summary="Get a list of items", description="This endpoint returns a list of items stored in the database.")
+async def read_items():
+    return [{"name": "Item 1"}, {"name": "Item 2"}]
+
+@app.post("/items/", response_description="The created item")
+async def create_item(item: Item):
+    return item
+
+@app.get("/users/", tags=["users"])
+async def read_users():
+    return [{"username": "johndoe"}]
+
+@app.get("/users/{user_id}", tags=["users"])
+async def read_user(user_id: int):
+    return {"username": "johndoe", "user_id": user_id}
+
+@app.get("/old-items/", deprecated=True)
+async def read_old_items():
+    return [{"name": "Old Item 1"}]
