@@ -1,4 +1,34 @@
 main.py
+
+@app.get(
+    "/views/owner/{owner_id}/groups/with-shares",
+    summary="Fetch all views owned by a user (including shared ones)",
+)
+async def get_all_views_for_user(
+    owner_id: str, groups: List[str] = Query([]), dao: TcaHubDAO = Depends(get_dao)
+):
+    """
+    Fetches all views a user has access to, including:
+    - Views owned by the user (`owner_id`).
+    - Views shared with any of the user's groups (`groups`).
+    """
+    return handle_get_all_views_for_user(dao, {"owner_id": owner_id, "groups": groups})
+
+def handle_get_all_views_for_user(dao: TcaHubDAO, params: dict):
+    owner_id = params.get("owner_id")
+    groups = params.get("groups", [])
+
+    if not owner_id:
+        raise HTTPException(status_code=400, detail="owner_id is required")
+
+    try:
+        views = dao.get_all_views_for_user(owner_id, groups)
+        return views
+    except Exception as e:
+        logger.error(f"Error fetching views for user {owner_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error fetching views")
+
+-----
 @app.get(
     "/views/owner/{owner_id}/groups/with-shares",
     summary="Fetch all views owned by a user (including shared ones)",
