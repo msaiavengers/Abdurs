@@ -1,3 +1,97 @@
+persistence_handlers.py
+
+# persistence_handlers.py
+from fastapi import HTTPException
+from some_module import TcaHubDAO
+
+def handle_create_view(dao: TcaHubDAO, params: dict):
+    """ Handles creating a view. """
+    try:
+        view_id = dao.create_view(
+            params["view_name"],
+            params["view_template"],
+            params["owner_id"],
+            params["view_type"]
+        )
+        return {"message": "View created successfully", "view_id": view_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating view: {str(e)}")
+
+
+def handle_get_shared_views(dao: TcaHubDAO, params: dict):
+    """ Handles fetching shared views. """
+    try:
+        shared_views = dao.get_shared_views_for_user_or_group(params.get("shared_to_list", []))
+        return {"shared_views": shared_views}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching shared views: {str(e)}")
+
+
+
+
+
+from fastapi import FastAPI, Depends, HTTPException, Query
+import json
+import time
+from typing import List
+from pydantic import BaseModel
+from some_module import TcaHubDAO, get_dao, get_form_data, parse_report_params
+from persistence_handlers import handle_create_view, handle_get_shared_views
+
+app = FastAPI()
+
+# Pydantic model for creating a view
+class ViewCreateRequest(BaseModel):
+    view_name: str
+    view_template: dict  # JSON object
+    owner_id: str
+    view_type: str
+
+
+@app.post("/views/create")
+async def create_view(request: ViewCreateRequest, dao: TcaHubDAO = Depends(get_dao)):
+    """ Direct API endpoint for creating a view (for testing). """
+    return handle_create_view(dao, request.model_dump())  # Convert Pydantic model to dict
+
+
+@app.get("/views/shared")
+async def get_shared_views_for_user_or_group(
+    shared_to_list: List[str] = Query([]), dao: TcaHubDAO = Depends(get_dao)
+):
+    """ Direct API endpoint for fetching shared views (for testing). """
+    return handle_get_shared_views(dao, {"shared_to_list": shared_to_list})
+
+
+def get_fn_by_report_name(report_name):
+    """ Maps report names to their corresponding functions. """
+    reportFnMapping = {
+        "CREATE_VIEW": handle_create_view,
+        "GET_SHARED_VIEWS_FOR_USER_OR_GROUP": handle_get_shared_views,
+        # Other handlers can be added here
+    }
+    return reportFnMapping.get(report_name)
+
+
+@app.post("/run/reports")
+async def runReport(form=Depends(get_form_data), dao: TcaHubDAO = Depends(get_dao)):
+    """ Centralized endpoint for UI-driven requests. """
+    start = time.time()
+
+    # Convert form data to JSON
+    form_report_params = form["reportParams"].replace("'", '"')
+    report_params = parse_report_params(json.loads(form_report_params))
+    report_name = form["reportName"]
+
+    # Get function by report name
+    report_fn = get_fn_by_report_name(report_name)
+
+    if report_fn:
+        return report_fn(dao, report_params)
+    else:
+        raise HTTPException(status_code=400, detail=f"Invalid report name: {report_name}")
+
+
+----
 from fastapi import FastAPI, Depends, HTTPException, Query
 import json
 import time
