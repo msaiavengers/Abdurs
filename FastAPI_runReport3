@@ -1,0 +1,205 @@
+main.py
+
+from fastapi import FastAPI, Depends
+from app.dao import TcaHubDAO, get_dao
+from app.persistence_handlers import (
+    handle_get_view,
+    handle_get_views_by_owner,
+    handle_get_view_with_shares,
+    handle_get_views_with_shares_by_owner,
+    handle_get_shared_views,
+    handle_get_all_views_for_user,
+    handle_create_view,
+    handle_create_share_view,
+    handle_update_view,
+    handle_delete_view,
+    handle_delete_shares
+)
+from app.models import ViewCreateRequest, ViewUpdateRequest, ShareViewRequest
+
+app = FastAPI()
+
+
+@app.get("/views/{view_id}")
+async def get_view(view_id: int, dao: TcaHubDAO = Depends(get_dao)):
+    return handle_get_view({"view_id": view_id}, dao)
+
+
+@app.get("/views/owner/{owner_id}")
+async def get_views_by_owner(owner_id: str, dao: TcaHubDAO = Depends(get_dao)):
+    return handle_get_views_by_owner({"owner_id": owner_id}, dao)
+
+
+@app.get("/views/with_shares/{view_id}")
+async def get_view_with_shares(view_id: int, dao: TcaHubDAO = Depends(get_dao)):
+    return handle_get_view_with_shares({"view_id": view_id}, dao)
+
+
+@app.get("/views/owner_with_shares/{owner_id}")
+async def get_views_with_shares_by_owner(owner_id: str, dao: TcaHubDAO = Depends(get_dao)):
+    return handle_get_views_with_shares_by_owner({"owner_id": owner_id}, dao)
+
+
+@app.get("/views/shared/{shared_to}")
+async def get_shared_views(shared_to: str, dao: TcaHubDAO = Depends(get_dao)):
+    return handle_get_shared_views({"shared_to": shared_to}, dao)
+
+
+@app.get("/views/all/{owner_id}")
+async def get_all_views_for_user(owner_id: str, groups: str = "", dao: TcaHubDAO = Depends(get_dao)):
+    group_list = groups.split(",") if groups else []
+    return handle_get_all_views_for_user({"owner_id": owner_id, "groups": group_list}, dao)
+
+
+@app.post("/views/create")
+async def create_view(request: ViewCreateRequest, dao: TcaHubDAO = Depends(get_dao)):
+    return handle_create_view(request.model_dump(), dao)
+
+
+@app.post("/views/share")
+async def share_view(request: ShareViewRequest, dao: TcaHubDAO = Depends(get_dao)):
+    return handle_create_share_view(request.model_dump(), dao)
+
+
+@app.put("/views/update")
+async def update_view(request: ViewUpdateRequest, dao: TcaHubDAO = Depends(get_dao)):
+    return handle_update_view(request.model_dump(), dao)
+
+
+@app.delete("/views/{view_id}")
+async def delete_view(view_id: int, dao: TcaHubDAO = Depends(get_dao)):
+    return handle_delete_view({"view_id": view_id}, dao)
+
+
+@app.delete("/views/share/delete")
+async def delete_shares(view_id: int = None, share_id: int = None, share_to: str = None, dao: TcaHubDAO = Depends(get_dao)):
+    return handle_delete_shares({"view_id": view_id, "share_id": share_id, "share_to": share_to}, dao)
+
+
+
+
+
+
+
+
+
+import logging
+from typing import Dict, List, Optional
+from fastapi import HTTPException
+from app.dao import TcaHubDao  # Ensure this is your DAO layer
+
+logger = logging.getLogger(__name__)
+
+def handle_get_view(params: Dict, dao: TcaHubDao):
+    view_id = params["view_id"]
+    logger.info(f"Fetching view for {view_id}")
+    view = dao.get_view(view_id)
+    if view:
+        logger.info(f"Successfully fetched view {view_id}")
+        return view
+    raise HTTPException(status_code=404, detail=f"View not found {view_id}")
+
+def handle_get_views_by_owner(params: Dict, dao: TcaHubDao):
+    owner_id = params["owner_id"]
+    logger.info(f"Fetching all views for owner {owner_id}")
+    views = dao.get_views_by_owner(owner_id)
+    if views:
+        logger.info(f"Retrieved {len(views)} views for owner {owner_id}")
+        return views
+    raise HTTPException(status_code=404, detail=f"No views found for {owner_id}")
+
+def handle_get_view_with_shares(params: Dict, dao: TcaHubDao):
+    view_id = params["view_id"]
+    logger.info(f"Fetching view with shares for {view_id}")
+    view = dao.get_view_with_shares(view_id)
+    if view:
+        logger.info(f"Successfully fetched view with shares {view_id}")
+        return view
+    raise HTTPException(status_code=404, detail=f"View not found {view_id}")
+
+def handle_get_views_with_shares_by_owner(params: Dict, dao: TcaHubDao):
+    owner_id = params["owner_id"]
+    logger.info(f"Fetching all views with shares for owner {owner_id}")
+    views = dao.get_views_with_shares_by_owner_id(owner_id)
+    if views:
+        logger.info(f"Retrieved {len(views)} views with shares for owner {owner_id}")
+        return views
+    raise HTTPException(status_code=404, detail=f"No views found for {owner_id}")
+
+def handle_get_shared_views(params: Dict, dao: TcaHubDao):
+    shared_to = params["shared_to"]
+    logger.info(f"Fetching shared views for {shared_to}")
+    views = dao.get_shared_views(shared_to)
+    logger.info(f"Retrieved {len(views)} shared views for {shared_to}")
+    return views
+
+def handle_get_all_views_for_user(params: Dict, dao: TcaHubDao):
+    owner_id = params["owner_id"]
+    groups = params.get("groups", [])
+    logger.info(f"Fetching all views (including shared) for user {owner_id}")
+    try:
+        views = dao.get_all_views_for_user(owner_id, groups)
+        return views
+    except Exception as e:
+        logger.error(f"Error fetching views for user {owner_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error fetching views")
+
+def handle_create_view(params: Dict, dao: TcaHubDao):
+    logger.info(f"Creating new view - Name: '{params['view_name']}', Owner: {params['owner_id']}, Type: {params['view_type']}")
+    try:
+        view_id = dao.create_view(params['view_name'], params['view_template'], params['owner_id'], params['view_type'])
+        return {"message": "View created successfully", "view_id": view_id}
+    except Exception as e:
+        logger.error(f"Error creating view: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error creating view")
+
+def handle_create_share_view(params: Dict, dao: TcaHubDao):
+    logger.info(f"Sharing view {params['view_id']} with {params['shared_to']} (type: {params['target_type']})")
+    try:
+        shared_id = dao.share_view(params['view_id'], params['shared_to'], params['target_type'])
+        logger.info(f"Successfully shared view {params['view_id']} - share_id: {shared_id}")
+        return {"message": "View shared successfully", "shared_id": shared_id}
+    except Exception as e:
+        logger.error(f"Error sharing view: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error sharing view")
+
+def handle_clone_shared_view(params: Dict, dao: TcaHubDao):
+    view_id = params["view_id"]
+    new_owner_id = params["new_owner_id"]
+    logger.info(f"Cloning shared view {view_id} for new owner {new_owner_id}")
+    try:
+        new_view_id = dao.clone_shared_view(view_id, new_owner_id)
+        return {"message": "View copied successfully", "new_view_id": new_view_id}
+    except Exception as e:
+        logger.error(f"Error copying shared view {view_id} for user {new_owner_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error copying shared view")
+
+def handle_update_view(params: Dict, dao: TcaHubDao):
+    logger.info(f"Updating view ID {params['view_id']}")
+    success = dao.update_view(params['view_id'], params.get('view_name'), params.get('view_template'), params.get('view_type'))
+    if success:
+        logger.info(f"Successfully updated view ID {params['view_id']}")
+        return {"message": "View successfully updated", "view_id": params['view_id']}
+    logger.error(f"Failed to update view ID {params['view_id']}")
+    raise HTTPException(status_code=400, detail="Update failed or no changes detected")
+
+def handle_delete_view(params: Dict, dao: TcaHubDao):
+    view_id = params["view_id"]
+    logger.warning(f"Deleting view {view_id}. WARNING: This will also delete all associated shares!")
+    success = dao.delete_view(view_id)
+    if success:
+        logger.info(f"Successfully deleted view {view_id} and its associated shares.")
+        return {"message": "View successfully deleted", "view_id": view_id}
+    raise HTTPException(status_code=404, detail=f"Issue deleting view {view_id}")
+
+def handle_delete_shares(params: Dict, dao: TcaHubDao):
+    logger.info(f"Deleting shares with parameters: {params}")
+    success = dao.delete_shares_for_view(**params)
+    if success:
+        logger.info(f"Successfully deleted shares matching parameters: {params}")
+        return {"message": "Share(s) deleted successfully"}
+    logger.warning(f"No shares found matching parameters: {params}")
+    raise HTTPException(status_code=400, detail="No matching shares found")
+
+
+
