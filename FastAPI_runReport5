@@ -1,0 +1,63 @@
+from fastapi import Depends
+import logging
+
+# Logger setup
+logger = logging.getLogger(__name__)
+
+# Helper to get the function parameters
+def get_function_params(fn):
+    return signature(fn).parameters
+
+@app.post("/runReport")
+async def runKdbFn(form=Depends(get_form_data), dao: TcaHubDAO = Depends(get_dao)):
+    start = time.time()
+    logger.info("Received KDB request")
+
+    form_report_params = form['reportParams'].replace('\', '')
+    report_params = parse_report_params(json.loads(form_report_params))
+    report_name = form['reportName']
+    report_fn = get_fn_by_report_name(report_name)
+
+    if report_fn:
+        logger.info(f"Received python report_params: {report_params}")
+        logger.info(f"Received python report_name: {report_name}")
+
+        # Fetch function parameters
+        fn_params = get_function_params(report_fn)
+
+        # Check if function name starts with "handle_"
+        if report_fn.__name__.startswith("handle_"):
+            # If it starts with handle_, inject dao into the function call
+            result = report_fn(report_params, dao)
+        else:
+            # Otherwise, just pass the report_params
+            result = report_fn(report_params)
+
+        return result
+    else:
+        # Handle KDB query case
+        logger.info(f"Received KDB report_params: {report_params}")
+        logger.info(f"Received KDB report_name: {report_name}")
+
+        q_res = q('{.tce.public.FnMap[x][y]}', report_name, report_params).pd()
+        if isinstance(q_res, pd.DataFrame):
+            q_res = replace_np_masked_constants(q_res)
+            q_res = q_res.reset_index().to_json(orient="records", date_format="iso")
+        elif isinstance(q_res, pd.Series):
+            pro
+
+
+
+
+def get_fn_by_report_name(report_name):
+    reportFnMapping = {
+        "GET_VIEW": handle_get_view,
+        "GET_VIEWS_BY_OWNER": handle_get_views_by_owner,
+        "UPDATE_VIEW": handle_update_view,
+        "DELETE_VIEW": handle_delete_view,
+        "SHARE_VIEW": handle_share_view,
+        "GET_SHARED_VIEWS": handle_get_shared_views,
+        "DELETE_SHARES": handle_delete_shares,
+    }
+    return reportFnMapping.get(report_name)
+
