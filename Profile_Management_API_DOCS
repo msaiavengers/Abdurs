@@ -1,3 +1,15 @@
+import os
+import markdown
+from fastapi.responses import HTMLResponse
+
+@app.get("/docs/readme")
+async def get_readme():
+    readme_path = os.path.join(os.path.dirname(__file__), "README.md")
+    with open(readme_path, "r", encoding="utf-8") as f:
+        readme_content = f.read()
+    html_content = markdown.markdown(readme_content)
+    return HTMLResponse(content=html_content)
+
 
 @app.get("/docs/readme")
 async def get_readme():
