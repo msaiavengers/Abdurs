@@ -1,5 +1,18 @@
 {
     "reportName": "GET_VIEW_BY_VIEW_ID",
+    "reportParams": {
+        "Param": [
+            {
+                "name": "view_id",
+                "value": "123"
+            }
+        ]
+    }
+}
+
+
+{
+    "reportName": "GET_VIEW_BY_VIEW_ID",
     "reportParams": "{\"Param\": {\"view_id\": 123}}"
 }
 
