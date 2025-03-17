@@ -1,3 +1,13 @@
+neded exsacpe inner quotes
+
+{
+    "reportName": "GET_ALL_VIEWS_BY_OWNER_ID_AND_OPTIONAL_GROUPS",
+    "reportParams": "{\"Param\": [{\"name\": \"owner_id\", \"value\": \"user_123\"}, {\"name\": \"groups\", \"value\": \"[\\\"trading_team\\\", \\\"risk_group\\\"]\"}]}"
+}
+
+
+
+
 {
     "reportName": "GET_ALL_VIEWS_BY_OWNER_ID_AND_OPTIONAL_GROUPS",
     "reportParams": "{\"Param\": [{\"name\": \"owner_id\", \"value\": \"user_123\"}, {\"name\": \"groups\", \"value\": \"[\"trading_team\", \"risk_group\"]\"}]}"
