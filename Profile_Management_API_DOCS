@@ -1,3 +1,9 @@
+
+@app.get("/docs/readme")
+async def get_readme():
+    readme_path = os.path.join(os.path.dirname(__file__), "README.md")
+    return FileResponse(readme_path, media_type="text/markdown")
+
 # Report API Documentation
 
 ## Overview
