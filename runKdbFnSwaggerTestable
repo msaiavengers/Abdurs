@@ -1,4 +1,11 @@
 {
+  "reportName": "CLONE_VIEW",
+  "reportParams": "{\"Param\": [{\"name\": \"view_id\", \"value\": \"1\"}, {\"name\": \"new_owner_id\", \"value\": \"latika\"}]}"
+}
+
+
+
+{
   "reportName": "SHARE_VIEW",
   "reportParams": "{\"Param\": [{\"name\": \"view_id\", \"value\": \"12\"}, {\"name\": \"shared_to\", \"value\": \"cash_eu\"}, {\"name\": \"target_type\", \"value\": \"GROUP\"}]}"
 }
