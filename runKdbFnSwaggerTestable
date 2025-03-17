@@ -1,4 +1,10 @@
 {
+  "reportName": "SHARE_VIEW",
+  "reportParams": "{\"Param\": [{\"name\": \"view_id\", \"value\": \"12\"}, {\"name\": \"shared_to\", \"value\": \"cash_eu\"}, {\"name\": \"target_type\", \"value\": \"GROUP\"}]}"
+}
+
+
+{
   "reportName": "CREATE_VIEW",
   "reportParams": "{\"Param\": [{\"name\": \"view_name\", \"value\": \"BlahDataset\"}, {\"name\": \"view_template\", \"value\": \"{\\\"tr\\\": \\\"0001234\\\", \\\"strategey\\\": \\\"vwap\\\"}\"}, {\"name\": \"owner_id\", \"value\": \"joe\"}, {\"name\": \"view_type\", \"value\": \"dataset\"}]}"
 }
