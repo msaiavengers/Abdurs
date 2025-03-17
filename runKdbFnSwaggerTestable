@@ -1,3 +1,27 @@
+def parse_report_params(report_params):
+    # Flatten Params Name, Value to a simple Dictionary
+    parsed_report_params = {}
+
+    # Check if report_params is a list (e.g., for cases where 'Param' is a list)
+    if isinstance(report_params, list):
+        for param in report_params:
+            try:
+                # This will parse 'value' if it is a stringified JSON or integer
+                parsed_report_params[param['name']] = json.loads(param['value']) if isinstance(param['value'], str) else param['value']
+            except ValueError:
+                # If it's not a JSON string, just store it as-is
+                parsed_report_params[param['name']] = param['value']
+    
+    # Check if it's a dictionary (standard case for other parameters)
+    elif isinstance(report_params, dict):
+        for key, value in report_params.items():
+            parsed_report_params[key] = value
+    
+    return parsed_report_params
+
+
+
+
 {
     "reportName": "GET_VIEW_BY_VIEW_ID",
     "reportParams": "{\"Param\":[{\"name\":\"view_id\",\"value\":123}]}"
