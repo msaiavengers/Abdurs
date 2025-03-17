@@ -1,0 +1,15 @@
+app.post("/runReport")
+ async def runKdbFn(
+     form: dict = Depends(get_form_data), 
+     dao: TcaHubDAO = Depends(get_dao)
+ ):
+     return {"reportName": form["reportName"], "reportParams": form["reportParams"]}
+ 
+ 
+ from fastapi import Request, Form, Depends
+ 
+ async def get_form_data(
+     reportName: str = Form(...), 
+     reportParams: str = Form(...)
+ ):
+     return {"reportName": reportName, "reportParams": reportParams}
