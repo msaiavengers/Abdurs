@@ -4,6 +4,73 @@ from fastapi.responses import HTMLResponse
 
 @app.get("/docs/readme")
 async def get_readme():
+    # Path to the README.md file
+    readme_path = os.path.join(os.path.dirname(__file__), "README.md")
+    
+    with open(readme_path, "r", encoding="utf-8") as f:
+        readme_content = f.read()
+
+    # Convert Markdown to HTML
+    html_content = markdown.markdown(readme_content)
+
+    # Define a basic HTML template with CSS for rendering
+    html_template = f"""
+    <html>
+    <head>
+        <!-- Include a GitHub-like Markdown CSS file -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/4.0.0/github-markdown.min.css">
+        <style>
+            body {{
+                font-family: Arial, sans-serif;
+                margin: 20px;
+            }}
+            .markdown-body {{
+                max-width: 900px;
+                margin: 0 auto;
+                padding: 20px;
+                overflow: auto;
+            }}
+            table {{
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 20px;
+            }}
+            table, th, td {{
+                border: 1px solid #ddd;
+                padding: 8px;
+                text-align: left;
+            }}
+            th {{
+                background-color: #f4f4f4;
+                font-weight: bold;
+            }}
+            code {{
+                background-color: #f8f8f8;
+                padding: 0 4px;
+                border-radius: 4px;
+            }}
+        </style>
+    </head>
+    <body>
+        <!-- Wrap the Markdown HTML content inside a div -->
+        <div class="markdown-body">
+            {html_content}
+        </div>
+    </body>
+    </html>
+    """
+    # Return the HTMLResponse with the styled Markdown content
+    return HTMLResponse(content=html_template)
+
+
+
+
+import os
+import markdown
+from fastapi.responses import HTMLResponse
+
+@app.get("/docs/readme")
+async def get_readme():
     readme_path = os.path.join(os.path.dirname(__file__), "README.md")
     with open(readme_path, "r", encoding="utf-8") as f:
         readme_content = f.read()
