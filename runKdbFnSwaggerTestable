@@ -1,4 +1,10 @@
-neded exsacpe inner quotes
+{
+  "reportName": "CREATE_VIEW",
+  "reportParams": "{\"Param\": [{\"name\": \"view_name\", \"value\": \"BlahDataset\"}, {\"name\": \"view_template\", \"value\": \"{\\\"tr\\\": \\\"0001234\\\", \\\"strategey\\\": \\\"vwap\\\"}\"}, {\"name\": \"owner_id\", \"value\": \"joe\"}, {\"name\": \"view_type\", \"value\": \"dataset\"}]}"
+}
+
+
+needed exsacpe inner quotes
 
 {
     "reportName": "GET_ALL_VIEWS_BY_OWNER_ID_AND_OPTIONAL_GROUPS",
