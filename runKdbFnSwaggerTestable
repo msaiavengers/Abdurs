@@ -1,0 +1,24 @@
+from fastapi import FastAPI, Depends
+from pydantic import BaseModel
+from fastapi.requests import Request
+
+app = FastAPI()
+
+class ReportRequest(BaseModel):
+    reportName: str
+    reportParams: str
+
+# ✅ Swagger-Testable JSON-Based Endpoint
+@app.post("/runReportSwagger")
+async def runKdbFnSwaggerTestable(
+    form: ReportRequest, 
+    dao: TcaHubDAO = Depends(get_dao)
+):
+    # Simulate the form data dependency
+    fake_form = {"reportName": form.reportName, "reportParams": form.reportParams}
+    return await runKdbFn(fake_form, dao)
+
+# 🚨 Keep This Untouched!
+@app.post("/runReport")
+async def runKdbFn(form=Depends(get_form_data), dao: TcaHubDAO = Depends(get_dao)):
+    return {"reportName": form["reportName"], "reportParams": form["reportParams"]}
