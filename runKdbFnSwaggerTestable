@@ -1,3 +1,9 @@
+{
+    "reportName": "GET_VIEW_BY_VIEW_ID",
+    "reportParams": "{\"Param\": {\"view_id\": 123}}"
+}
+
+
 from fastapi import FastAPI, Depends
 from pydantic import BaseModel
 from fastapi.requests import Request
