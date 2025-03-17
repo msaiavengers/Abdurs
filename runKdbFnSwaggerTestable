@@ -1,4 +1,9 @@
 {
+  "reportName": "UPDATE_VIEW",
+  "reportParams": "{\"Param\": [{\"name\": \"view_id\", \"value\": \"2\"}, {\"name\": \"view_name\", \"value\": \"Wellington Dataset updated Q1\"}, {\"name\": \"view_template\", \"value\": \"{\\\"tnl\\\": \\\"TNL0001234\\\", \\\"strategey\\\": \\\"vwap\\\", \\\"tcePages\\\": \\\"200\\\"}\"}, {\"name\": \"view_type\", \"value\": \"dataset\"}]}"
+
+
+{
   "reportName": "CLONE_VIEW",
   "reportParams": "{\"Param\": [{\"name\": \"view_id\", \"value\": \"1\"}, {\"name\": \"new_owner_id\", \"value\": \"latika\"}]}"
 }
