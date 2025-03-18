@@ -83,7 +83,20 @@ def generate_readme_html():
             }}
         </style>
     </head>
-    <bod
+    <body class="markdown-body">
+        <div class="content-wrapper">
+            {html_content}
+        </div>
+        
+        <!-- Highlight.js for code highlighting -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script>
+    </body>
+    </html>
+    """
+    
+    return html_template
+
 
 
 
