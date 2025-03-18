@@ -1,3 +1,9 @@
+html_content = markdown.markdown(
+    content,
+    extensions=["tables", "fenced_code", "codehilite", "markdown.extensions.nl2br"]
+)
+
+
 import os
 import re
 import markdown
