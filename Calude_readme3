@@ -1,0 +1,365 @@
+# Report API Documentation
+
+## Overview
+
+These are the `reportNames` that can be called from the UI. To test, we have exposed the `/runReportSwagger` endpoint.
+
+## Available Reports
+
+| Report Name | Summary | Params Expected |
+| ----------- | ------- | --------------- |
+| [`GET_VIEW_BY_VIEW_ID`](#get_view_by_view_id) | Retrieve details of a specific view by its ID | `view_id` |
+| [`GET_VIEWS_BY_OWNER_ID`](#get_views_by_owner_id) | Retrieve all views owned by a specific user | `owner_id` |
+| [`GET_VIEW_WITH_SHARES_BY_VIEW_ID`](#get_view_with_shares_by_view_id) | Retrieve a view along with its share details | `view_id` |
+| [`GET_VIEWS_WITH_SHARES_BY_OWNER_ID`](#get_views_with_shares_by_owner_id) | Retrieve all views with share information for a specific owner | `owner_id` |
+| [`GET_VIEWS_SHARED_BY_SHARED_TO`](#get_views_shared_by_shared_to) | Retrieve all views shared with a specific user or group | `shared_to`, `target_type` |
+| [`GET_VIEWS_BY_OWNER_ID_SHARED_WITH_LIST_GROUP_OPTIONAL`](#get_views_by_owner_id_shared_with_list_group_optional) | Retrieve all views owned by a user and views shared with them | `owner_id`, `include_groups` |
+| [`CREATE_VIEW`](#create_view) | Create a new view entry and return the generated view_id | `view_name`, `view_template`, `owner_id`, `view_type` |
+| [`SHARE_VIEW`](#share_view) | Share a view with a user or group | `view_id`, `shared_to`, `target_type` |
+| [`CLONE_SHARE_VIEW_BY_VIEW_ID_TO_NEW_OWNER_ID`](#clone_share_view_by_view_id_to_new_owner_id) | Clone a shared view to a new owner | `view_id`, `new_owner_id` |
+| [`UPDATE_VIEW`](#update_view) | Update an existing view | `view_id`, `view_name`, `view_template`, `view_type` |
+| [`DELETE_VIEW`](#delete_view) | Delete a view by its ID | `view_id` |
+| [`DELETE_SHARES`](#delete_shares) | Delete shares for a specific view | `view_id`, `shared_to`, `target_type` |
+
+## Attribute Constraints
+
+- **ViewType** must be one of: `"template"`, `"view"`, or `"dataset"`
+- **TargetType** must be one of: `"USER"` or `"GROUP"`
+
+## API Endpoints
+
+### GET_VIEW_BY_VIEW_ID
+
+#### Summary
+
+Retrieve details of a specific view by its ID.
+
+#### Request Parameters
+
+```json
+{
+    "reportName": "GET_VIEW_BY_VIEW_ID",
+    "reportParams": "{\"Param\":[{\"name\":\"view_id\",\"value\":\"1\"}]}"
+}
+```
+
+#### CURL Command
+
+```sh
+curl -X 'POST' \
+  'shehzada_local_endpoint/runReportSwagger' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "reportName": "GET_VIEW_BY_VIEW_ID",
+    "reportParams": "{\"Param\":[{\"name\":\"view_id\",\"value\":\"1\"}]}"
+}'
+```
+
+### GET_VIEWS_BY_OWNER_ID
+
+#### Summary
+
+Retrieve all views owned by a specific user.
+
+#### Request Parameters
+
+```json
+{
+    "reportName": "GET_VIEWS_BY_OWNER_ID",
+    "reportParams": "{\"Param\":[{\"name\":\"owner_id\",\"value\":\"shehzada\"}]}"
+}
+```
+
+#### CURL Command
+
+```sh
+curl -X 'POST' \
+  'shehzada_local_endpoint/runReportSwagger' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "reportName": "GET_VIEWS_BY_OWNER_ID",
+    "reportParams": "{\"Param\":[{\"name\":\"owner_id\",\"value\":\"shehzada\"}]}"
+}'
+```
+
+### GET_VIEW_WITH_SHARES_BY_VIEW_ID
+
+#### Summary
+
+Retrieve a view along with its share details.
+
+#### Request Parameters
+
+```json
+{
+    "reportName": "GET_VIEW_WITH_SHARES_BY_VIEW_ID",
+    "reportParams": "{\"Param\":[{\"name\":\"view_id\",\"value\":\"1\"}]}"
+}
+```
+
+#### CURL Command
+
+```sh
+curl -X 'POST' \
+  'shehzada_local_endpoint/runReportSwagger' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "reportName": "GET_VIEW_WITH_SHARES_BY_VIEW_ID",
+    "reportParams": "{\"Param\":[{\"name\":\"view_id\",\"value\":\"1\"}]}"
+}'
+```
+
+### GET_VIEWS_WITH_SHARES_BY_OWNER_ID
+
+#### Summary
+
+Retrieve all views with share information for a specific owner.
+
+#### Request Parameters
+
+```json
+{
+    "reportName": "GET_VIEWS_WITH_SHARES_BY_OWNER_ID",
+    "reportParams": "{\"Param\":[{\"name\":\"owner_id\",\"value\":\"shehzada\"}]}"
+}
+```
+
+#### CURL Command
+
+```sh
+curl -X 'POST' \
+  'shehzada_local_endpoint/runReportSwagger' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "reportName": "GET_VIEWS_WITH_SHARES_BY_OWNER_ID",
+    "reportParams": "{\"Param\":[{\"name\":\"owner_id\",\"value\":\"shehzada\"}]}"
+}'
+```
+
+### GET_VIEWS_SHARED_BY_SHARED_TO
+
+#### Summary
+
+Retrieve all views shared with a specific user or group.
+
+#### Request Parameters
+
+```json
+{
+    "reportName": "GET_VIEWS_SHARED_BY_SHARED_TO",
+    "reportParams": "{\"Param\":[{\"name\":\"shared_to\",\"value\":\"cash_eu\"},{\"name\":\"target_type\",\"value\":\"GROUP\"}]}"
+}
+```
+
+#### CURL Command
+
+```sh
+curl -X 'POST' \
+  'shehzada_local_endpoint/runReportSwagger' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "reportName": "GET_VIEWS_SHARED_BY_SHARED_TO",
+    "reportParams": "{\"Param\":[{\"name\":\"shared_to\",\"value\":\"cash_eu\"},{\"name\":\"target_type\",\"value\":\"GROUP\"}]}"
+}'
+```
+
+### GET_VIEWS_BY_OWNER_ID_SHARED_WITH_LIST_GROUP_OPTIONAL
+
+#### Summary
+
+Retrieve all views owned by a user and views shared with them.
+
+#### Request Parameters
+
+```json
+{
+    "reportName": "GET_VIEWS_BY_OWNER_ID_SHARED_WITH_LIST_GROUP_OPTIONAL",
+    "reportParams": "{\"Param\":[{\"name\":\"owner_id\",\"value\":\"shehzada\"},{\"name\":\"include_groups\",\"value\":\"true\"}]}"
+}
+```
+
+#### CURL Command
+
+```sh
+curl -X 'POST' \
+  'shehzada_local_endpoint/runReportSwagger' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "reportName": "GET_VIEWS_BY_OWNER_ID_SHARED_WITH_LIST_GROUP_OPTIONAL",
+    "reportParams": "{\"Param\":[{\"name\":\"owner_id\",\"value\":\"shehzada\"},{\"name\":\"include_groups\",\"value\":\"true\"}]}"
+}'
+```
+
+### CREATE_VIEW
+
+#### Summary
+
+Create a new view entry and return the generated view_id.
+
+#### Request Parameters
+
+```json
+{
+  "reportName": "CREATE_VIEW",
+  "reportParams": "{\"Param\": [{\"name\": \"view_name\", \"value\": \"EU JPM Q1 Report\"}, {\"name\": \"view_template\", \"value\": \"{\\\"tnl\\\": \\\"TNL0001234\\\", \\\"strategey\\\": \\\"vwap\\\"}\"}, {\"name\": \"owner_id\", \"value\": \"haridass\"}, {\"name\": \"view_type\", \"value\": \"dataset\"}]}"
+}
+```
+
+#### CURL Command
+
+```sh
+curl -X 'POST' \
+  'shehzada_local_endpoint/runReportSwagger' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "reportName": "CREATE_VIEW",
+  "reportParams": "{\"Param\": [{\"name\": \"view_name\", \"value\": \"EU JPM Q1 Report\"}, {\"name\": \"view_template\", \"value\": \"{\\\"tnl\\\": \\\"TNL0001234\\\", \\\"strategey\\\": \\\"vwap\\\"}\"}, {\"name\": \"owner_id\", \"value\": \"haridass\"}, {\"name\": \"view_type\", \"value\": \"dataset\"}]}"
+}'
+```
+
+### SHARE_VIEW
+
+#### Summary
+
+Share a view with a user or group and return the generated shared_id.
+
+#### Request Parameters
+
+```json
+{
+  "reportName": "SHARE_VIEW",
+  "reportParams": "{\"Param\": [{\"name\": \"view_id\", \"value\": \"13\"}, {\"name\": \"shared_to\", \"value\": \"cash_eu\"}, {\"name\": \"target_type\", \"value\": \"GROUP\"}]}"
+}
+```
+
+#### CURL Command
+
+```sh
+curl -X 'POST' \
+  'shehzada_local_endpoint/runReportSwagger' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "reportName": "SHARE_VIEW",
+  "reportParams": "{\"Param\": [{\"name\": \"view_id\", \"value\": \"12\"}, {\"name\": \"shared_to\", \"value\": \"cash_eu\"}, {\"name\": \"target_type\", \"value\": \"GROUP\"}]}"
+}'
+```
+
+### CLONE_SHARE_VIEW_BY_VIEW_ID_TO_NEW_OWNER_ID
+
+#### Summary
+
+Clone a shared view to a new owner.
+
+#### Request Parameters
+
+```json
+{
+  "reportName": "CLONE_SHARE_VIEW_BY_VIEW_ID_TO_NEW_OWNER_ID",
+  "reportParams": "{\"Param\": [{\"name\": \"view_id\", \"value\": \"13\"}, {\"name\": \"new_owner_id\", \"value\": \"shehzada\"}]}"
+}
+```
+
+#### CURL Command
+
+```sh
+curl -X 'POST' \
+  'shehzada_local_endpoint/runReportSwagger' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "reportName": "CLONE_SHARE_VIEW_BY_VIEW_ID_TO_NEW_OWNER_ID",
+  "reportParams": "{\"Param\": [{\"name\": \"view_id\", \"value\": \"13\"}, {\"name\": \"new_owner_id\", \"value\": \"shehzada\"}]}"
+}'
+```
+
+### UPDATE_VIEW
+
+#### Summary
+
+Update an existing view.
+
+#### Request Parameters
+
+```json
+{
+  "reportName": "UPDATE_VIEW",
+  "reportParams": "{\"Param\": [{\"name\": \"view_id\", \"value\": \"13\"}, {\"name\": \"view_name\", \"value\": \"Updated EU JPM Q1 Report\"}, {\"name\": \"view_template\", \"value\": \"{\\\"tnl\\\": \\\"TNL0001234\\\", \\\"strategey\\\": \\\"twap\\\"}\"}, {\"name\": \"view_type\", \"value\": \"view\"}]}"
+}
+```
+
+#### CURL Command
+
+```sh
+curl -X 'POST' \
+  'shehzada_local_endpoint/runReportSwagger' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "reportName": "UPDATE_VIEW",
+  "reportParams": "{\"Param\": [{\"name\": \"view_id\", \"value\": \"13\"}, {\"name\": \"view_name\", \"value\": \"Updated EU JPM Q1 Report\"}, {\"name\": \"view_template\", \"value\": \"{\\\"tnl\\\": \\\"TNL0001234\\\", \\\"strategey\\\": \\\"twap\\\"}\"}, {\"name\": \"view_type\", \"value\": \"view\"}]}"
+}'
+```
+
+### DELETE_VIEW
+
+#### Summary
+
+Delete a view by its ID.
+
+#### Request Parameters
+
+```json
+{
+  "reportName": "DELETE_VIEW",
+  "reportParams": "{\"Param\": [{\"name\": \"view_id\", \"value\": \"13\"}]}"
+}
+```
+
+#### CURL Command
+
+```sh
+curl -X 'POST' \
+  'shehzada_local_endpoint/runReportSwagger' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "reportName": "DELETE_VIEW",
+  "reportParams": "{\"Param\": [{\"name\": \"view_id\", \"value\": \"13\"}]}"
+}'
+```
+
+### DELETE_SHARES
+
+#### Summary
+
+Delete shares for a specific view.
+
+#### Request Parameters
+
+```json
+{
+  "reportName": "DELETE_SHARES",
+  "reportParams": "{\"Param\": [{\"name\": \"view_id\", \"value\": \"13\"}, {\"name\": \"shared_to\", \"value\": \"cash_eu\"}, {\"name\": \"target_type\", \"value\": \"GROUP\"}]}"
+}
+```
+
+#### CURL Command
+
+```sh
+curl -X 'POST' \
+  'shehzada_local_endpoint/runReportSwagger' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "reportName": "DELETE_SHARES",
+  "reportParams": "{\"Param\": [{\"name\": \"view_id\", \"value\": \"13\"}, {\"name\": \"shared_to\", \"value\": \"cash_eu\"}, {\"name\": \"target_type\", \"value\": \"GROUP\"}]}"
+}'
+```
