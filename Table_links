@@ -1,3 +1,109 @@
+
+import os
+import re
+import markdown
+
+def generate_readme_html():
+    readme_path = os.path.join(os.path.dirname(__file__), "PROFILE_MANAGEMENT_API_README.md")
+    with open(readme_path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    # Process table links before markdown conversion
+    def add_links_to_table(match):
+        report_name = match.group(1).strip('`')  # Report name in the table
+        handler_func = match.group(2).strip('`')  # Handler function name (not used for links)
+
+        # Use the exact report_name in the link, no conversion to lowercase or underscores
+        # This ensures the link uses the same format as the section in the document
+        return f"| [{report_name}](#{report_name}) | {handler_func} |"
+
+    # Find the table and add links to report names
+    pattern = r"\| `([A-Z_]+)` \| `([a-z_]+)` \|"
+    content = re.sub(pattern, add_links_to_table, content)
+
+    # Convert Markdown to HTML with extensions
+    html_content = markdown.markdown(
+        content,
+        extensions=["tables", "fenced_code", "codehilite", "markdown.extensions.toc"]  # Added TOC extension
+    )
+
+    # Ensure that the table is properly rendered
+    html_template = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Report API Documentation</title>
+        <!-- GitHub Markdown CSS -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown-light.min.css">
+        <!-- Code highlighting CSS -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+        <style>
+            body {{
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                margin: 0;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+                padding: 15px;
+            }}
+            
+            .content-wrapper {{
+                width: 100%;
+                max-width: 980px;
+                padding: 45px;
+                overflow: hidden;
+                box-sizing: border-box;
+            }}
+
+            table {{
+                border-collapse: collapse;
+                width: 100%;
+                margin: 16px 0;
+            }}
+            
+            table th, table td {{
+                border: 1px solid #dfe2e5;
+                padding: 8px 13px;
+            }}
+            
+            table tr:nth-child(even) {{
+                background-color: #f8f8f8;
+            }}
+            
+            pre {{
+                background-color: #f6f8fa;
+                border-radius: 6px;
+                padding: 16px;
+                overflow: auto;
+            }}
+            
+            @media (max-width: 767px) {{
+                body {{
+                    padding: 15px;
+                }}
+            }}
+        </style>
+    </head>
+    <body class="markdown-body">
+        <div class="content-wrapper">
+            {html_content}
+        </div>
+        
+        <!-- Highlight.js for code highlighting -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script>
+    </body>
+    </html>
+    """
+    
+    return html_template
+
+
+
+
 Table_links
 import os
 import re
