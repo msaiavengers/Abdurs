@@ -1,3 +1,39 @@
+async def getLdapMembers():
+    global storedAllowedUsers
+    logger.info("✅ getLdapMembers() called!")  # Confirm function starts
+
+    try:
+        async with ldap_lock:
+            logger.info("Getting members of LDAP group")  # You are seeing this log
+            
+            allowedUsers = []
+            conn = LDAPConnection(host=FWD_PROD_HOST, kerberos=True)
+
+            for ldapGroup in TCE_LDAP_GROUPS:
+                try:
+                    logger.info(f"Fetching LDAP group: {ldapGroup}")  # Debug each group
+                    group = conn.getGroup(ldapGroup)
+                    logger.info(f"✅ Retrieved {len(group.members)} members from {ldapGroup}")  # Ensure this runs
+
+                    for member in group.members:
+                        if member.userid not in allowedUsers:
+                            allowedUsers.append(member.userid)
+
+                except Exception as e:
+                    logger.error(f"❌ Error fetching LDAP group {ldapGroup}: {e}", exc_info=True)
+
+            storedAllowedUsers = allowedUsers  # Update global
+            logger.info(f"✅ Done getting members of LDAP group. Loaded {len(storedAllowedUsers)} users.")
+
+        return storedAllowedUsers  # Ensure function completes
+
+    except Exception as e:
+        logger.error(f"❌ Error in getLdapMembers(): {e}", exc_info=True)
+        return []
+
+
+
+
 @app.get("/test-ldap")
 async def test_ldap():
     return {"users": await getLdapMembers()}
