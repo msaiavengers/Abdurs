@@ -1,3 +1,42 @@
+import asyncio
+
+storedAllowedUsers = []
+ldap_lock = asyncio.Lock()
+
+async def getLdapMembers():
+    global storedAllowedUsers
+    async with ldap_lock:  # Ensuring only one coroutine modifies storedAllowedUsers at a time
+        logger.info("Getting members of LDAP group")
+        allowedUsers = []
+        conn = LDAPConnection(host=FWD_PROD_HOST, kerberos=True)
+        for ldapGroup in TCE_LDAP_GROUPS:
+            group = conn.getGroup(ldapGroup)
+            for member in group.members:
+                if member.userid not in allowedUsers:
+                    allowedUsers.append(member.userid)
+        storedAllowedUsers = allowedUsers  # Atomically update after processing
+        logger.info(f"Done getting members of LDAP group. {len(storedAllowedUsers)} users loaded.")
+    return storedAllowedUsers
+
+from apscheduler.schedulers.background import BackgroundScheduler
+import asyncio
+
+@app.on_event("startup")
+def schedule_ldap_reload():
+    scheduler = BackgroundScheduler()
+
+    try:
+        loop = asyncio.get_running_loop()  # Correct way to get FastAPI's event loop
+    except RuntimeError:  # If no running loop, create a new one
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+    scheduler.add_job(lambda: asyncio.run_coroutine_threadsafe(getLdapMembers(), loop), 'cron', minute=f"*/{TCE_LDAP_RELOAD_INTERVAL_MINS}")
+
+    scheduler.start()
+    logger.info("LDAP Members Reloader Scheduled.")
+
+
 Yes, making getLdapMembers() asynchronous likely introduced issues with how storedAllowedUsers is being populated. Since it’s a global variable, concurrent execution could lead to race conditions or an incomplete update.
 
 Why is the global map (storedAllowedUsers) not being updated properly?
