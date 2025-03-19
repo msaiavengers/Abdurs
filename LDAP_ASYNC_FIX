@@ -1,4 +1,9 @@
- Correct Way to Call an Async Job from a Synchronous Function
+@app.get("/test-ldap")
+async def test_ldap():
+    return {"users": await getLdapMembers()}
+
+
+Correct Way to Call an Async Job from a Synchronous Function
 Instead of using asyncio.get_event_loop(), use run_coroutine_threadsafe properly by getting the event loop when FastAPI is running:
 
 Why asyncio.get_running_loop() instead of get_event_loop()?
