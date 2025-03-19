@@ -1,3 +1,66 @@
+Yes, making getLdapMembers() asynchronous likely introduced issues with how storedAllowedUsers is being populated. Since it’s a global variable, concurrent execution could lead to race conditions or an incomplete update.
+
+Why is the global map (storedAllowedUsers) not being updated properly?
+Concurrency Issues
+
+Since getLdapMembers() is now async, multiple calls can run simultaneously, leading to unpredictable writes to storedAllowedUsers.
+If one coroutine starts updating it while another is reading, you could end up with partial or inconsistent data.
+Execution Context Change
+
+The original synchronous function updated storedAllowedUsers in a blocking manner, ensuring the update was complete before the next operation.
+Now that it's async, other coroutines may read storedAllowedUsers while it's still being updated.
+Non-Awaited Execution in the Scheduler
+
+If schedule_ldap_reload() calls getLdapMembers() without properly awaiting it, the job might not complete as expected.
+If getLdapMembers() is running asynchronously but schedule_ldap_reload() doesn’t properly manage it, the update may not persist.
+
+
+
+
+import asyncio
+
+storedAllowedUsers = []
+ldap_lock = asyncio.Lock()
+
+async def getLdapMembers():
+    global storedAllowedUsers
+    async with ldap_lock:  # Prevent concurrent modifications
+        logger.info("Getting members of LDAP group")
+        allowedUsers = []
+        conn = LDAPConnection(host=FWD_PROD_HOST, kerberos=True)
+        for ldapGroup in TCE_LDAP_GROUPS:
+            group = conn.getGroup(ldapGroup)
+            for member in group.members:
+                if member.userid not in allowedUsers:
+                    allowedUsers.append(member.userid)
+        storedAllowedUsers = allowedUsers  # Atomically update after the loop
+        logger.info(f"Done getting members of LDAP group. {len(storedAllowedUsers)} users loaded.")
+    return storedAllowedUsers
+
+
+
+from apscheduler.schedulers.background import BackgroundScheduler
+import asyncio
+
+@app.on_event('startup')
+def schedule_ldap_reload():
+    scheduler = BackgroundScheduler()
+    
+    loop = asyncio.get_event_loop()  # Get FastAPI's event loop
+    scheduler.add_job(lambda: asyncio.run_coroutine_threadsafe(getLdapMembers(), loop), 'cron', minute='*/' + TCE_LDAP_RELOAD_INTERVAL_MINS)
+    
+    scheduler.start()
+    logger.info("LDAP Members Reloader Scheduled.")
+
+
+@app.get("/queryLdapUsers")
+async def queryLdapUsers():
+    async with ldap_lock:  # Ensure read consistency
+        return {"allowedUsers": storedAllowedUsers}
+
+
+
+
 When you make a function async, it doesn't directly return its result - instead, it returns a coroutine object that needs to be awaited to get the actual result.
 In your scheduler code, you're adding a job that calls getLdapMembers(), but since this function is now async, you need to ensure it's properly awaited. Regular scheduler jobs don't automatically handle async functions.
 Here's what's happening:
