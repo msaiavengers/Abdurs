@@ -1,0 +1,27 @@
+When you make a function async, it doesn't directly return its result - instead, it returns a coroutine object that needs to be awaited to get the actual result.
+In your scheduler code, you're adding a job that calls getLdapMembers(), but since this function is now async, you need to ensure it's properly awaited. Regular scheduler jobs don't automatically handle async functions.
+Here's what's happening:
+
+Your scheduler calls getLdapMembers()
+Instead of executing the function and getting the list of users, it gets a coroutine object
+The coroutine never actually runs to completion, so storedAllowedUsers never gets updated
+
+To fix this, you need to modify your scheduler to properly handle async functions. One approach is to use a lambda function that creates a task for the async function:
+
+
+@app.on_event('startup')
+async def schedule_ldap_reload():
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(lambda: asyncio.create_task(getLdapMembers()), 'cron', minute='*/' + TCE_LDAP_RELOAD_INTERVAL_MINS)
+    scheduler.start()
+    logger.info("LDAP Members Reloader Scheduled.")
+
+import asyncio
+
+ldap_lock = asyncio.Lock()
+
+async def getLdapMembers():
+    # ...
+    async with ldap_lock:
+        storedAllowedUsers = allowedUsers
+    # ...
