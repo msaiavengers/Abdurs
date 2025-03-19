@@ -1,4 +1,24 @@
-    # Schedule the asynchronous call to getLdapMembers() using create_task
+
+@app.on_event("startup")
+def schedule_ldap_reload():
+    # Run getLdapMembers once at startup
+    loop = asyncio.get_event_loop()  # Get the current event loop
+    loop.create_task(getLdapMembers())  # Run the async task once at startup
+
+    # Initialize the scheduler for periodic task
+    scheduler = BackgroundScheduler()
+
+    # Schedule getLdapMembers() to run every TCE_LDAP_RELOAD_INTERVAL_MINS (15 minutes)
+    scheduler.add_job(
+        lambda: asyncio.create_task(getLdapMembers()),  # Create the task for the coroutine
+        'cron',
+        minute=f"*/{TCE_LDAP_RELOAD_INTERVAL_MINS}"  # Run every 15 minutes
+    )
+
+    scheduler.start()
+    logger.info("LDAP Members Reloader Scheduled.")
+
+# Schedule the asynchronous call to getLdapMembers() using create_task
     loop = asyncio.get_event_loop()  # Get the current event loop
     loop.create_task(getLdapMembers())  # This schedules the coroutine to run asynchronously
 
