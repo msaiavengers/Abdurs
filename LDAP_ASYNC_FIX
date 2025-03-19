@@ -1,3 +1,10 @@
+    # Schedule the asynchronous call to getLdapMembers() using create_task
+    loop = asyncio.get_event_loop()  # Get the current event loop
+    loop.create_task(getLdapMembers())  # This schedules the coroutine to run asynchronously
+
+
+
+
 async def getLdapMembers():
     global storedAllowedUsers
     logger.info("✅ getLdapMembers() called!")  # Confirm function starts
