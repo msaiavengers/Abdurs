@@ -1,3 +1,17 @@
+ Correct Way to Call an Async Job from a Synchronous Function
+Instead of using asyncio.get_event_loop(), use run_coroutine_threadsafe properly by getting the event loop when FastAPI is running:
+
+Why asyncio.get_running_loop() instead of get_event_loop()?
+Because get_running_loop() guarantees that it will only be called inside an active event loop (which FastAPI provides).
+
+Use an Async Lock to Prevent Race Conditions
+
+@app.get("/queryLdapUsers")
+async def queryLdapUsers():
+    async with ldap_lock:  # Ensure read consistency
+        return {"allowedUsers": storedAllowedUsers}
+
+
 import asyncio
 
 storedAllowedUsers = []
