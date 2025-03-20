@@ -1,0 +1,65 @@
+def get_fn_by_report_name(report_name):
+    reportFnMapping = {
+        "GET_VIEW_BY_VIEW_ID": (report_name, handle_get_view),
+    }
+    return reportFnMapping.get(report_name)
+
+
+@app.post("/runReport")
+async def runKdbFn(form=Depends(get_form_data), dao: TcaHubDAO = Depends(get_dao)):
+    start = time.time()
+    logger.info("Received KDB request")
+
+    form_report_params = form['reportParams'].replace('\', '')
+    report_params = parse_report_params(json.loads(form_report_params))
+    report_name = form['reportName']
+    
+    report_entry = get_fn_by_report_name(report_name)
+    
+    if report_entry:
+        report_name, report_fn = report_entry  # Unpack tuple
+
+        logger.info(f"Received python report_params: {report_params}")
+        logger.info(f"Received python report_name: {report_name}")
+
+        # Fetch function parameters
+        fn_params = get_function_params(report_fn)
+
+        # Inject dao if necessary
+        if report_fn.__name__.startswith("handle_"):
+            result = report_fn(dao, report_params, report_name)  # Pass report_name
+        else:
+            result = report_fn(report_params)
+
+        return result
+
+
+def handle_get_view(dao: TcaHubDAO, params: dict, report_name: str):
+    """ Handles fetching a specific view by ID. """
+    view_id = params.get("view_id")
+    if view_id is None:
+        raise HTTPException(status_code=400, detail="Missing view_id")
+
+    view = dao.get_view(view_id)
+    if view:
+        return {'reportName': report_name, 'reportResponse': view}  # Use report_name dynamically
+
+    raise HTTPException(status_code=404, detail="View not found")
+
+
+def format_response(report_name: str, report_response: dict):
+    return {"reportName": report_name, "reportResponse": report_response}
+
+
+def handle_get_view(dao: TcaHubDAO, params: dict, report_name: str):
+    """ Handles fetching a specific view by ID. """
+    view_id = params.get("view_id")
+    if view_id is None:
+        raise HTTPException(status_code=400, detail="Missing view_id")
+
+    view = dao.get_view(view_id)
+    if view:
+        return format_response(report_name, view)  # ✅ No repetition
+
+    raise HTTPException(status_code=404, detail="View not found")
+
