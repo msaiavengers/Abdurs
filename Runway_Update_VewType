@@ -1,0 +1,27 @@
+runway/tcahub/changelog/20250325_update_view_type_enum.sql
+
+-- Step 1: Update existing values
+UPDATE tca.tcahub_views
+SET view_type = 'workbook'
+WHERE view_type = 'view';
+
+-- Step 2: Drop old CHECK constraint
+ALTER TABLE tca.tcahub_views
+DROP CONSTRAINT IF EXISTS tcahub_views_view_type_check;
+
+-- Step 3: Add new CHECK constraint
+ALTER TABLE tca.tcahub_views
+ADD CONSTRAINT tcahub_views_view_type_check
+CHECK (view_type IN ('template', 'workbook', 'dataset', 'userSettings'));
+
+
+from enum import Enum
+
+class ViewType(str, Enum):
+    TEMPLATE = "template"
+    WORKBOOK = "workbook"
+    DATASET = "dataset"
+    USER_SETTINGS = "userSettings"
+
+
+runway up
