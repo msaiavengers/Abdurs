@@ -1,3 +1,44 @@
+
+-- Begin transaction to ensure atomicity
+BEGIN;
+
+-- Step 1: Update existing values
+UPDATE tca.tcahub_views
+SET view_type = 'workbook'
+WHERE view_type = 'view';
+
+-- Step 2: Drop the existing CHECK constraint dynamically
+DO $$
+DECLARE
+    constraint_name text;
+BEGIN
+    -- Get the constraint name for the view_type column
+    SELECT conname
+    INTO constraint_name
+    FROM pg_constraint
+    WHERE conrelid = 'tca.tcahub_views'::regclass
+      AND conkey = (SELECT array_agg(attnum)
+                    FROM pg_attribute
+                    WHERE attrelid = 'tca.tcahub_views'::regclass
+                      AND attname = 'view_type');
+
+    -- Drop the constraint if it exists
+    IF constraint_name IS NOT NULL THEN
+        EXECUTE 'ALTER TABLE tca.tcahub_views DROP CONSTRAINT IF EXISTS ' || constraint_name;
+    END IF;
+END $$;
+
+-- Step 3: Add new CHECK constraint
+ALTER TABLE tca.tcahub_views
+ADD CONSTRAINT tcahub_views_view_type_check
+CHECK (view_type IN ('template', 'workbook', 'dataset', 'userSettings'));
+
+-- Commit transaction if everything is successful
+COMMIT;
+
+
+
+
 runway/tcahub/changelog/20250325_update_view_type_enum.sql
 
 -- Step 1: Update existing values
