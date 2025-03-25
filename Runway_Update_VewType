@@ -1,3 +1,25 @@
+-- Begin transaction to ensure atomicity
+BEGIN;
+
+-- Step 1: Drop the existing CHECK constraint
+ALTER TABLE tca.tcahub_views
+DROP CONSTRAINT IF EXISTS tcahub_views_view_type_check;
+
+-- Step 2: Update existing values
+UPDATE tca.tcahub_views
+SET view_type = 'workbook'
+WHERE view_type = 'view';
+
+-- Step 3: Add new CHECK constraint
+ALTER TABLE tca.tcahub_views
+ADD CONSTRAINT tcahub_views_view_type_check
+CHECK (view_type IN ('template', 'workbook', 'dataset', 'userSettings'));
+
+-- Commit transaction if everything is successful
+COMMIT;
+
+
+
 
 -- Begin transaction to ensure atomicity
 BEGIN;
