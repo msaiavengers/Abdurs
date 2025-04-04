@@ -1,3 +1,6 @@
+for f in /path/to/logs/*.gz; do process_name="${f##*/}"; process_name="${process_name%.log.gz}"; max_heap=0; while read -r heap_line; do value=${heap_line#"Heap: "}; value=${value%M*}; if [[ $value =~ ^[0-9]+(\.[0-9]+)?$ ]]; then if [[ $(echo "$max_heap < $value" | tr -d '\r' | sort -g | tail -n1) == "$value" ]]; then max_heap=$value; fi; fi; done < <(zgrep -o "Heap: [0-9.]\+M" "$f"); if [[ $max_heap != 0 ]]; then echo "$process_name: $max_heap M"; fi; done | sort -r -t: -k2,2n
+
+retricted on sing basename so use above
 for f in /path/to/logs/*.gz; do process_name=$(basename "$f" .log.gz); max_heap=0; while read -r heap_line; do value=${heap_line#"Heap: "}; value=${value%M*}; if [[ $(echo "$value" | grep -c '\.') -gt 0 ]]; then max_heap=$(printf "%.6f\n%s\n" "$max_heap" "$value" | sort -g | tail -n1); else if [[ $value -gt $max_heap ]]; then max_heap=$value; fi; fi; done < <(zgrep -o "Heap: [0-9.]\+M" "$f"); if [[ $max_heap != 0 ]]; then echo "$process_name: $max_heap M"; fi; done | sort -r -t: -k2,2n
 
 
