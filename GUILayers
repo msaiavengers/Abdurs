@@ -1,0 +1,188 @@
+--version 2 -
+
+from fastapi import FastAPI, HTTPException, Query
+from pydantic import BaseModel
+from uuid import UUID
+from guid_dao import GUIDDAO
+
+app = FastAPI()
+
+class GUIDCreateRequest(BaseModel):
+    guid: UUID
+    user_id: str
+
+@app.post("/guid/")
+def create_guid(request: GUIDCreateRequest):
+    """Create a new GUID entry in the database."""
+    result = GUIDDAO.create_guid(str(request.guid), request.user_id)
+    if not result:
+        raise HTTPException(status_code=500, detail="Failed to create GUID entry")
+    return {"guid": result["guid"], "user_id": result["user_id"], "date_created": result["date_created"]}
+
+@app.get("/guid/user/")
+def get_user_by_guid(guid: UUID = Query(...)):
+    """Fetch user_id associated with a given GUID."""
+    user_id = GUIDDAO.get_user_by_guid(str(guid))
+    if not user_id:
+        raise HTTPException(status_code=404, detail="GUID not found")
+    return {"guid": str(guid), "user_id": user_id}
+
+
+
+
+ @staticmethod
+    def create_guid(guid, user_id):
+        """Stores a new GUID entry in the database."""
+        with GUIDDAO.get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    INSERT INTO guid_mapping (guid, user_id, date_created)
+                    VALUES (%s, %s, %s)
+                    RETURNING *;
+                """, (guid, user_id, datetime.utcnow()))
+                conn.commit()
+                return cursor.fetchone()
+
+    @staticmethod
+    def get_user_by_guid(guid):
+        """Fetches a user_id by GUID."""
+        with GUIDDAO.get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT user_id FROM guid_mapping WHERE guid = %s;", (guid,))
+                result = cursor.fetchone()
+                return result["user_id"] if result else None
+
+
+
+
+
+
+-- Create the guid_mapping table
+CREATE TABLE guid_mapping (
+    id SERIAL PRIMARY KEY,
+    guid UUID NOT NULL UNIQUE,
+    user_id TEXT NOT NULL,
+    date_created TIMESTAMP DEFAULT NOW()
+);
+
+-- Add indexes for faster lookups
+CREATE INDEX idx_guid ON guid_mapping (guid);
+CREATE INDEX idx_user_id ON guid_mapping (user_id);
+
+
+------
+
+
+import psycopg2
+import psycopg2.extras
+import uuid
+from datetime import datetime
+from contextlib import contextmanager
+
+# Database config - Update with actual details
+DATABASE_CONFIG = {
+    "dbname": "your_db",
+    "user": "your_user",
+    "password": "your_password",
+    "host": "your_host",
+    "port": "your_port",
+}
+
+@contextmanager
+def get_db_connection():
+    """Provides a database connection."""
+    conn = psycopg2.connect(**DATABASE_CONFIG)
+    try:
+        yield conn
+    finally:
+        conn.close()
+
+class GUIDDAO:
+    @staticmethod
+    def create_guid(user_id):
+        """Stores a new GUID entry in the database."""
+        new_guid = str(uuid.uuid4())
+        with get_db_connection() as conn:
+            with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
+                cursor.execute("""
+                    INSERT INTO guid_mapping (guid, user_id, date_created)
+                    VALUES (%s, %s, %s)
+                    RETURNING *;
+                """, (new_guid, user_id, datetime.utcnow()))
+                conn.commit()
+                return cursor.fetchone()
+
+    @staticmethod
+    def update_guid(guid, new_user_id):
+        """Updates the user_id for an existing GUID."""
+        with get_db_connection() as conn:
+            with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
+                cursor.execute("""
+                    UPDATE guid_mapping
+                    SET user_id = %s, date_created = %s
+                    WHERE guid = %s
+                    RETURNING *;
+                """, (new_user_id, datetime.utcnow(), guid))
+                conn.commit()
+                return cursor.fetchone()
+
+    @staticmethod
+    def get_guid(guid=None, user_id=None):
+        """Fetches a GUID entry by GUID or user_id."""
+        with get_db_connection() as conn:
+            with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
+                if guid:
+                    cursor.execute("SELECT * FROM guid_mapping WHERE guid = %s;", (guid,))
+                elif user_id:
+                    cursor.execute("SELECT * FROM guid_mapping WHERE user_id = %s;", (user_id,))
+                else:
+                    return None
+                return cursor.fetchone()
+
+
+
+from fastapi import FastAPI, HTTPException, Query
+from pydantic import BaseModel
+from uuid import UUID
+from typing import Optional
+from dao import GUIDDAO  # Import the DAO class
+
+app = FastAPI()
+
+# Pydantic models for request validation
+class GUIDCreateRequest(BaseModel):
+    user_id: str
+
+class GUIDUpdateRequest(BaseModel):
+    guid: UUID
+    new_user_id: str
+
+# Create a new GUID entry
+@app.post("/guid/")
+def create_guid(request: GUIDCreateRequest):
+    result = GUIDDAO.create_guid(request.user_id)
+    if not result:
+        raise HTTPException(status_code=500, detail="Failed to create GUID entry")
+    return {"guid": result["guid"], "user_id": result["user_id"], "date_created": result["date_created"]}
+
+# Update an existing GUID entry
+@app.put("/guid/")
+def update_guid(request: GUIDUpdateRequest):
+    result = GUIDDAO.update_guid(str(request.guid), request.new_user_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="GUID not found")
+    return {"guid": result["guid"], "user_id": result["user_id"], "date_created": result["date_created"]}
+
+# Retrieve a GUID entry by GUID or User ID
+@app.get("/guid/")
+def get_guid(guid: Optional[UUID] = Query(None), user_id: Optional[str] = Query(None)):
+    """Fetch GUID entry by either GUID or user ID."""
+    if not guid and not user_id:
+        raise HTTPException(status_code=400, detail="Either guid or user_id must be provided")
+
+    result = GUIDDAO.get_guid(guid=str(guid) if guid else None, user_id=user_id)
+    
+    if not result:
+        raise HTTPException(status_code=404, detail="GUID entry not found")
+
+    return {"guid": result["guid"], "user_id": result["user_id"], "date_created": result["date_created"]}
