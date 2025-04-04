@@ -1,0 +1,25 @@
+# Process each gzipped log file
+for f in /path/to/logs/*.gz; do
+  # Get the filename as process identifier
+  process_name=$(basename "$f" .log.gz)
+  
+  # Create an empty variable to track the maximum
+  max_heap=0
+  
+  # Extract heap values and find the maximum
+  while read -r heap_line; do
+    # Extract just the numeric part and remove the 'M'
+    value=${heap_line#"Heap: "}
+    value=${value%M*}
+    
+    # Compare with current max
+    if (( $(echo "$value > $max_heap" | bc -l) )); then
+      max_heap=$value
+    fi
+  done < <(zgrep -o "Heap: [0-9.]\+M" "$f")
+  
+  # Only print if we found a value
+  if [ "$max_heap" != "0" ]; then
+    echo "$process_name: $max_heap M"
+  fi
+done | sort -r -t: -k2
