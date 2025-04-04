@@ -1,3 +1,23 @@
+zssh prca@lnpmsw2 '
+max_heap=0
+zgrep -o "Heap: [0-9.]\+M" /v/campus/ln/appl/etl/logs/example.log.gz | while read -r heap_line; do 
+  value=${heap_line#"Heap: "}  # Remove "Heap: "
+  value=${value%M*}            # Remove "M"
+  
+  # Ensure value is a valid number
+  if [[ "$value" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+    # Compare using Bash floating-point logic
+    if (( $(echo "$value > $max_heap" | tr -d '\r' | cut -d'.' -f1) )); then 
+      max_heap=$value
+    fi
+  fi
+done
+echo "Max Heap: $max_heap M"
+'
+
+
+
+
 zgrep -o "Heap: [0-9.]\+M" /v/campus/ln/appl/etl/logs/example.log.gz
 
 zgrep -o "Heap: [0-9.]\+M" /v/campus/ln/appl/etl/logs/*.gz
