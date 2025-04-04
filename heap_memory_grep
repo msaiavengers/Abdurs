@@ -1,3 +1,6 @@
+zssh prca@lnpmsw2 'max_heap=0; zgrep -o "Heap: [0-9.]\+M" /v/campus/ln/appl/etl/logs/example.log.gz | while read -r heap_line; do value="${heap_line#Heap: }"; value="${value%M*}"; int_value="${value%%.*}"; [[ "$int_value" =~ ^[0-9]+$ ]] && (( int_value > max_heap )) && max_heap=$value; done; echo "Max Heap: $max_heap M"'
+
+
 zssh prca@lnpmsw2 'max_heap=0; zgrep -o "Heap: [0-9.]\+M" /v/campus/ln/appl/etl/logs/example.log.gz | while read -r heap_line; do value=${heap_line#"Heap: "}; value=${value%M*}; [[ "$value" =~ ^[0-9]+(\.[0-9]+)?$ ]] && (( $(echo "$value > $max_heap" | cut -d"." -f1) )) && max_heap=$value; done; echo "Max Heap: $max_heap M"'
 
 zssh prca@lnpmsw2 'max_heap=0; zgrep -o "Heap: [0-9.]\+M" /v/campus/ln/appl/etl/logs/example.log.gz | while read -r heap_line; do value=${heap_line#"Heap: "}; value=${value%M*}; [[ "$value" =~ ^[0-9]+(\.[0-9]+)?$ ]] && (( $(echo "$value > $max_heap" | tr -d "\r" | cut -d"." -f1) )) && max_heap=$value; done; echo "Max Heap: $max_heap M"'
