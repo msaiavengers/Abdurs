@@ -1,5 +1,7 @@
+for f in /path/to/logs/*.gz; do process_name=$(basename "$f" .log.gz); max_heap=0; while read -r heap_line; do value=${heap_line#"Heap: "}; value=${value%M*}; if [[ $(echo "$value" | grep -c '\.') -gt 0 ]]; then max_heap=$(printf "%.6f\n%s\n" "$max_heap" "$value" | sort -g | tail -n1); else if [[ $value -gt $max_heap ]]; then max_heap=$value; fi; fi; done < <(zgrep -o "Heap: [0-9.]\+M" "$f"); if [[ $max_heap != 0 ]]; then echo "$process_name: $max_heap M"; fi; done | sort -r -t: -k2,2n
 
-oneliner
+
+oneliner  we cant use /bin/bc so use above
 for f in /path/to/logs/*.gz; do process_name=$(basename "$f" .log.gz); max_heap=0; while read -r heap_line; do value=${heap_line#"Heap: "}; value=${value%M*}; if (( $(echo "$value > $max_heap" | bc -l) )); then max_heap=$value; fi; done < <(zgrep -o "Heap: [0-9.]\+M" "$f"); if (( $(echo "$max_heap > 0" | bc -l) )); then echo "$process_name: $max_heap M"; fi; done | sort -r -t: -k2,2n
 
 # Process each gzipped log file
