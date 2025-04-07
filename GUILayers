@@ -1,3 +1,31 @@
+--version 4 better execption handling dup guid
+from fastapi import HTTPException
+import psycopg2
+
+def handle_create_guid(params: Dict):
+    guid = params["guid"]
+    owner_id = params["user"]
+
+    try:
+        # Create a new GUID entry in the database
+        result = dao.create_guid(guid, owner_id)
+    except psycopg2.IntegrityError as e:
+        # Rollback if using transactions
+        dao.rollback()  # If needed
+        raise HTTPException(status_code=400, detail=f"GUID '{guid}' already exists")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    if not result:
+        raise HTTPException(status_code=500, detail="Failed to create GUID entry")
+
+    return {
+        "guid": result["guid"],
+        "user": result["owner_id"],
+        "date_created": result["date_created"]
+    }
+
+
 --version3 - get_guid_by_userid
 class GUIDDAO:
     @staticmethod
