@@ -1,3 +1,6 @@
+zssh pedge@hkpnotify1 'zgrep -o "<ns2:alertType>[^<]*</ns2:alertType>" /var/hostlinks/hkpnotify1/pedge/notifygw2/Daily/IncomingAlert.* | cut -d ">" -f2 | cut -d "<" -f1 | sort | uniq -c | sort -nr'
+
+
 --version 4 better execption handling dup guid
 
 from fastapi import HTTPException
