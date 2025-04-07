@@ -1,4 +1,39 @@
 --version 4 better execption handling dup guid
+
+from fastapi import HTTPException
+
+def handle_create_guid(params: Dict):
+    guid = params["guid"]
+    owner_id = params["user"]
+
+    try:
+        result = dao.create_guid(guid, owner_id)
+    except Exception as e:
+        error_msg = str(e)
+
+        # Generic check for duplicate key error
+        if "duplicate key value" in error_msg or "UniqueViolation" in error_msg:
+            raise HTTPException(
+                status_code=400,
+                detail=f"GUID '{guid}' already exists"
+            )
+        # Fallback: unknown error
+        raise HTTPException(
+            status_code=500,
+            detail=f"Unexpected error: {error_msg}"
+        )
+
+    if not result:
+        raise HTTPException(status_code=500, detail="Failed to create GUID entry")
+
+    return {
+        "guid": result["guid"],
+        "user": result["owner_id"],
+        "date_created": result["date_created"]
+    }
+
+
+
 from fastapi import HTTPException
 import psycopg2
 
