@@ -1,3 +1,33 @@
+
+UUID v4 has 122 random bits 
+
+UUID v4 gives you 2^122 ≈ 5.3 × 10^36 possible UUIDs
+
+20 instances, each generating 1 million UUIDs
+Total UUIDs generated = 20 × 1,000,000 = 20 million (2 × 10^7)
+
+
+🎲 Probability of Collision (Birthday Paradox Style)
+The probability P(collision) when generating n UUIDs is approximately:
+
+css
+Copy
+Edit
+P ≈ n^2 / (2 × 2^122)
+Let’s plug in some realistic values:
+
+Example: 20 instances, each generating 1 million UUIDs
+Total UUIDs generated = 20 × 1,000,000 = 20 million (2 × 10^7)
+
+nginx
+Copy
+Edit
+P ≈ (2 × 10^7)^2 / (2 × 2^122)
+  = 4 × 10^14 / (2 × 5.3 × 10^36)
+  ≈ 3.77 × 10^-23
+That’s 0.0000000000000000000000377% chance.
+Like, you’re more likely to be hit by an asteroid while holding a winning lottery ticket.
+
 zssh pedge@hkpnotify1 'zgrep -o "<ns2:alertType>[^<]*</ns2:alertType>" /var/hostlinks/hkpnotify1/pedge/notifygw2/Daily/IncomingAlert.* | cut -d ">" -f2 | cut -d "<" -f1 | sort | uniq -c | sort -nr'
 
 
