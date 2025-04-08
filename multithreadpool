@@ -1,0 +1,50 @@
+from fastapi import FastAPI
+import os
+import sys
+
+app = FastAPI()
+
+@app.get("/env-info")
+def get_env_info():
+    return {
+        "pid": os.getpid(),
+        "argv": sys.argv
+    }
+
+
+
+
+import threading
+import os
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/threads-check")
+def threads_check():
+    return {
+        "pid": os.getpid(),
+        "thread_name": threading.current_thread().name
+    }
+
+
+ENTRYPOINT ["gunicorn", "main:app", "-w", "4", "-k", "uvicorn.workers.UvicornWorker"]
+
+
+
+from psycopg2.pool import ThreadedConnectionPool
+from psycopg2.pool import ThreadedConnectionPool
+
+_connection_pool = ThreadedConnectionPool(
+    minconn=1,
+    maxconn=10,
+    dbname=DB_NAME,
+    user=DB_USER,
+    host=DB_HOST,
+    port=DB_PORT,
+    sslmode='require',
+    sslcert=MTLS_CERT_PATH,
+    sslkey=MTLS_KEY_PATH,
+    sslrootcert=MTLS_ROOT_CERT_PATH,
+    options=f'-c search_path={DB_SCHEMA}'
+)
