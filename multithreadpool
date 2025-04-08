@@ -1,3 +1,25 @@
+The two ENTRYPOINT commands are used to start a FastAPI application in different ways. Here's a breakdown of the differences:
+
+1. ENTRYPOINT ["gunicorn", "main:app", "-w", "4", "-k", "uvicorn.workers.UvicornWorker"]
+Gunicorn: This starts the application with Gunicorn, a WSGI HTTP server that can run Python web applications.
+
+main:app: This tells Gunicorn to look for the FastAPI application instance in the main.py file. Specifically, it looks for app in main.py (main:app).
+
+-w 4: This option specifies that Gunicorn should run with 4 worker processes. More workers can handle more requests concurrently, improving performance for production environments.
+
+-k uvicorn.workers.UvicornWorker: This specifies the worker class to use. Here, it’s using Uvicorn as the worker, which is an ASGI server that works well with FastAPI and is optimized for async functionality.
+
+Use Case: This is typically used in production for serving a FastAPI application. Gunicorn with Uvicorn workers can handle concurrency well and is a common pattern for running FastAPI in production environments.
+
+2. ENTRYPOINT ["fastapi", "run", "main.py"]
+FastAPI CLI: This command uses the FastAPI CLI to run the app directly. The fastapi command is part of the FastAPI package, and the run command is used to start the application.
+
+main.py: This specifies the path to the FastAPI app (main.py). This would usually look for an app instance in main.py and run it using the built-in ASGI server (Uvicorn).
+
+Use Case: This is typically used for development environments or quick testing. It’s simpler but less performant than the Gunicorn approach, as it uses the Uvicorn server in a single-threaded mode by default.
+
+
+
 1. ThreadedConnectionPool
 The ThreadedConnectionPool provided by psycopg2 is designed to be thread-safe. This means that multiple threads can safely request and release connections from the pool without interfering with each other.
 
