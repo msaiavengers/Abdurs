@@ -1,3 +1,13 @@
+1. ThreadedConnectionPool
+The ThreadedConnectionPool provided by psycopg2 is designed to be thread-safe. This means that multiple threads can safely request and release connections from the pool without interfering with each other.
+
+Thread Safety: The pool manages connections in such a way that each thread will get its own dedicated connection from the pool. Connections are not shared between threads, ensuring safe concurrent access.
+
+2. Connection Pooling in FastAPI
+In FastAPI, each request is handled in a separate thread or process, depending on the configuration. By using the ThreadedConnectionPool, the database connections are managed at the thread level.
+
+Each thread that handles a FastAPI request will get a connection from the pool via self.pool.getconn(), use it for the database operation, and then release it via self.pool.putconn(conn).
+
 # TCADAO.py
 
 from psycopg2.pool import ThreadedConnectionPool
