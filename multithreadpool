@@ -1,3 +1,140 @@
+Here's the final version of the `TcaHubDAO` class along with the FastAPI app that uses the shared global DAO instance. This will handle the database connections via the connection pool and make sure everything is properly managed.
+
+### Final `TcaHubDAO` Class
+
+```python
+import psycopg2
+import json
+from psycopg2.extras import RealDictCursor
+from psycopg2.pool import ThreadedConnectionPool
+
+# Global connection pool
+_connection_pool = ThreadedConnectionPool(
+    minconn=1,
+    maxconn=10,
+    dbname=DB_NAME,
+    user=DB_USER,
+    host=DB_HOST,
+    port=DB_PORT,
+    sslmode='require',
+    sslcert=MTLS_CERT_PATH,
+    sslkey=MTLS_KEY_PATH,
+    sslrootcert=MTLS_ROOT_CERT_PATH,
+    options=f'-c search_path={DB_SCHEMA}'
+)
+
+class TcaHubDAO:
+    def __init__(self, pool):
+        self.pool = pool
+
+    def get_db_connection(self):
+        """Get a connection from the pool."""
+        return self.pool.getconn()
+
+    def release_db_connection(self, conn):
+        """Return the connection to the pool."""
+        self.pool.putconn(conn)
+
+    def create_view(self, view_name, view_template, owner_id, view_type):
+        """Create a new view in the database and return the generated view ID."""
+        conn = self.get_db_connection()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    """
+                    INSERT INTO tcahub_views (view_name, view_template, owner_id, view_type)
+                    VALUES (%s, %s, %s, %s) RETURNING view_id;
+                    """,
+                    (view_name, json.dumps(view_template), owner_id, view_type)
+                )
+                conn.commit()
+                result = cursor.fetchone()
+                return result["view_id"] if result else None
+        finally:
+            self.release_db_connection(conn)
+
+    def get_view(self, view_id):
+        """Fetch the details of a specific view by its ID."""
+        conn = self.get_db_connection()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT * FROM tcahub_views WHERE view_id = %s;", (view_id,))
+                return cursor.fetchone()
+        finally:
+            self.release_db_connection(conn)
+
+    def get_views_by_owner(self, owner_id):
+        """Get all views owned by a specific user based on the owner ID."""
+        conn = self.get_db_connection()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT * FROM tcahub_views WHERE owner_id = %s;", (owner_id,))
+                return cursor.fetchall()
+        finally:
+            self.release_db_connection(conn)
+```
+
+### FastAPI App
+
+```python
+from fastapi import FastAPI, Depends, HTTPException
+import json
+import logging
+
+# Initialize the FastAPI app
+app = FastAPI()
+
+# Create the global DAO instance using the connection pool
+dao_instance = TcaHubDAO(_connection_pool)
+
+# Dependency to provide the DAO instance
+def get_dao():
+    return dao_instance
+
+# Example FastAPI endpoint to create a view
+@app.post("/views/create")
+async def create_view(request: dict, dao: TcaHubDAO = Depends(get_dao)):
+    try:
+        view_id = dao.create_view(request["view_name"], request["view_template"], request["owner_id"], request["view_type"])
+        return {"message": "View created successfully", "view_id": view_id}
+    except Exception as e:
+        logging.error(f"Error creating view: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error creating view")
+
+# Example FastAPI endpoint to fetch a view
+@app.get("/views/{view_id}")
+async def get_view(view_id: int, dao: TcaHubDAO = Depends(get_dao)):
+    try:
+        view = dao.get_view(view_id)
+        if view:
+            return {"view": view}
+        raise HTTPException(status_code=404, detail="View not found")
+    except Exception as e:
+        logging.error(f"Error fetching view: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error fetching view")
+
+# Example FastAPI endpoint to fetch views by owner
+@app.get("/views/owner/{owner_id}")
+async def get_views_by_owner(owner_id: int, dao: TcaHubDAO = Depends(get_dao)):
+    try:
+        views = dao.get_views_by_owner(owner_id)
+        return {"views": views}
+    except Exception as e:
+        logging.error(f"Error fetching views by owner: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error fetching views")
+```
+
+### Key Points:
+
+1. **Global DAO Instance**: The `dao_instance` is created globally with the shared connection pool (`_connection_pool`), and FastAPI injects it into each endpoint via `Depends(get_dao)`.
+2. **Connection Pool Management**: Each database operation (e.g., `create_view`, `get_view`, `get_views_by_owner`) retrieves a connection from the pool and ensures it's returned after the operation completes.
+3. **FastAPI Endpoints**: FastAPI's dependency injection (`Depends`) ensures that the same `dao_instance` is used across all the endpoints.
+4. **Error Handling**: Errors are logged, and appropriate HTTP responses are returned in case of failure.
+
+This setup should be efficient, modular, and scalable for handling database connections in a multi-threaded environment like FastAPI with connection pooling.
+
+
+
 from fastapi import FastAPI
 import os
 import sys
