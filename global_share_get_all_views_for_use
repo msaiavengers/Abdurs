@@ -1,0 +1,112 @@
+import base64
+from datetime import datetime
+
+def generate_quid(view_id: int, shared_to: str, share_type: str, shared_at: datetime) -> str:
+    payload = f"{view_id}|{shared_to}|{share_type}|{shared_at.isoformat()}"
+    return base64.urlsafe_b64encode(payload.encode()).decode()
+
+
+def get_all_views_for_user(self, owner_id, groups):
+    conn = self.get_db_connection()
+    try:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
+            # Owned views (excluding global shared ones)
+            owned_views = TcaHubDAO._fetch_view_details_exclude_globals(cursor, owner_id)
+
+            # Shared views — for user and groups (including GROUP target_type)
+            shared_to_list = [owner_id] + groups
+            shared_views_raw = TcaHubDAO._fetch_view_details(cursor, "vs.shared_to = ANY(%s)", (shared_to_list,))
+
+            # Filter out global shares and extract global_view encoded strings
+            shared_views = []
+            global_views = []
+
+            for view in shared_views_raw:
+                if view.get("global_share"):
+                    global_views.append(view["global_share"])
+                else:
+                    shared_views.append(view)
+
+            return {
+                "owned_views": owned_views,
+                "shared_views": shared_views,
+                "global_views": global_views
+            }
+    finally:
+        self.release_db_connection(conn)
+
+
+@staticmethod
+def _fetch_view_details(cursor, where_clause, params):
+    view_query = f"""
+    SELECT v.view_id AS v_id, v.view_name, v.view_template, v.owner_id,
+           v.created_at, v.updated_at, v.view_type,
+           vs.shared_id, vs.shared_to, vs.target_type, vs.shared_at
+    FROM tcahub_views v
+    LEFT JOIN view_shares vs ON v.view_id = vs.view_id
+    WHERE {where_clause}
+    """
+    cursor.execute(view_query, params)
+    results = cursor.fetchall()
+
+    if not results:
+        return []
+
+    views_with_shares = {}
+    for row in results:
+        view_id = row['v_id']
+        if view_id not in views_with_shares:
+            views_with_shares[view_id] = {
+                'view_id': view_id,
+                'view_name': row['view_name'],
+                'view_template': row['view_template'],
+                'owner_id': row['owner_id'],
+                'created_at': row['created_at'],
+                'updated_at': row['updated_at'],
+                'view_type': row['view_type'],
+                'shares': [],
+                'global_share': None
+            }
+
+        if row['shared_id']:
+            shared_to = row['shared_to']
+            target_type = row['target_type']
+
+            if shared_to == 'ALL':
+                if target_type == 'GLOBAL':
+                    encoded = generate_quid(
+                        view_id=view_id,
+                        shared_to=shared_to,
+                        share_type=target_type,
+                        shared_at=row['shared_at']
+                    )
+                    views_with_shares[view_id]['global_share'] = encoded
+                # Skip ALL shares that are not GLOBAL
+                continue
+            else:
+                share = {
+                    'shared_id': row['shared_id'],
+                    'shared_to': shared_to,
+                    'target_type': target_type,
+                    'shared_at': row['shared_at']
+                }
+                views_with_shares[view_id]['shares'].append(share)
+
+    return list(views_with_shares.values())
+
+
+@staticmethod
+def _fetch_view_details_exclude_globals(cursor, owner_id):
+    # Get list of view_ids to exclude because they're globally shared
+    exclusion_query = """
+    SELECT v.view_id
+    FROM tcahub_views v
+    JOIN view_shares vs ON v.view_id = vs.view_id
+    WHERE v.owner_id = %s AND vs.shared_to = 'ALL' AND vs.target_type = 'GLOBAL'
+    """
+    cursor.execute(exclusion_query, (owner_id,))
+    excluded_ids = {row[0] for row in cursor.fetchall()}
+
+    # Fetch all owned views
+    all_owned = TcaHubDAO._fetch_view_details(cursor, "v.owner_id = %s", (owner_id,))
+    return [v for v in all_owned if v['view_id'] not in excluded_ids]
