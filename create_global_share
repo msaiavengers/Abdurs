@@ -1,0 +1,59 @@
+class TargetType(str, Enum):
+    USER = "USER"
+    GROUP = "GROUP"
+    GLOBAL = "GLOBAL"  # <-- new addition
+
+
+@app.post("/views/share/global")
+async def share_global_view(request: ViewCreateRequest, dao: TcaHubDAO = Depends(get_dao)):
+    return handle_share_global_view(request.dict(), dao)
+
+
+# utils.py or wherever it lives
+import base64
+from datetime import datetime
+
+def generate_share_token(view_id: int, shared_to: str, share_type: str, shared_at: datetime) -> str:
+    payload = f"{view_id}|{shared_to}|{share_type}|{shared_at.isoformat()}"
+    return base64.urlsafe_b64encode(payload.encode()).decode()
+
+
+from datetime import datetime
+from utils import generate_share_token 
+
+def handle_share_global_view(params: Dict, dao: TcaHubDAO):
+    logger.info(f"Creating and globally sharing view for user: {params.get('user')}")
+
+    try:
+        # Step 1: Create the view
+        create_result = handle_create_view(params, dao)
+        view_id = create_result["reportResponse"]["view_id"]
+
+        # Step 2: Share it globally
+        shared_to = "ALL"
+        share_type = TargetType.GLOBAL
+        shared_at = datetime.utcnow()
+
+        share_params = {
+            "view_id": view_id,
+            "shared_to": shared_to,
+            "target_type": share_type
+        }
+        handle_create_share_view(share_params, dao)
+
+        # Step 3: Encode the share info
+        quid = generate_quid(view_id, shared_to, share_type, shared_at)
+
+        return {
+            "reportName": "SHARE_GLOBAL_VIEW",
+            "reportResponse": {
+                "quid": quid  # this is all you return
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Error in share_global_view: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error creating and sharing global view")
+
+
+
