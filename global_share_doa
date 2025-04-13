@@ -15,6 +15,41 @@ def handle_create_share_global_view(params: Dict, dao: Tcaasdao):
 
 dao
 
+helper
+def _ensure_cursor(self, cursor=None):
+    """Internal: Returns a tuple (cursor, conn, should_close_conn)"""
+    if cursor is not None:
+        return cursor, None, False
+    conn = self.get_db_connection()
+    return conn.cursor(cursor_factory=psycopg2.extras.DictCursor), conn, True
+
+def _cleanup_cursor(self, cursor, conn, should_close_conn):
+    """Internal: Handles commit, cursor closing, and releasing connection if owned"""
+    if should_close_conn and conn:
+        conn.commit()
+        cursor.close()
+        self.release_db_connection(conn)
+
+
+def create_view(self, view_name, view_template, owner_id, view_type, cursor=None):
+    print(f"tcahub_dao -> create_view view_name: {view_name}, {view_template}, {owner_id}, {view_type}")
+    
+    cursor, conn, should_close_conn = self._ensure_cursor(cursor)
+
+    try:
+        cursor.execute(
+            """
+            INSERT INTO tcahub_views (view_name, view_template, owner_id, view_type)
+            VALUES (%s, %s, %s, %s) RETURNING view_id;
+            """,
+            (view_name, json.dumps(view_template), owner_id, view_type)
+        )
+        result = cursor.fetchone()
+        return result["view_id"] if result else None
+    finally:
+        self._cleanup_cursor(cursor, conn, should_close_conn)
+
+
 def create_and_share_global_view(self, params: Dict) -> Dict:
     conn = self.get_db_connection()
     try:
