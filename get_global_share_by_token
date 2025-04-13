@@ -1,0 +1,31 @@
+@router.get("/api/share/view/{share_token}")
+async def get_share_view_by_share_token(share_token: str):
+    try:
+        decoded = decode_quid(share_token)
+        return handle_get_share_view_by_share_token(decoded)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@staticmethod
+def handle_get_share_view_by_share_token(decoded_token: Dict):
+    view_id = decoded_token["view_id"]
+    shared_id = decoded_token["shared_id"]
+    shared_to = decoded_token["shared_to"]
+    target_type = decoded_token["share_type"]
+
+    conn = get_db_connection()
+    try:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
+            result = TcaHubDAO._fetch_view_details(
+                cursor,
+                "vs.shared_to = %s AND vs.target_type = %s AND vs.shared_id = %s AND vs.view_id = %s",
+                (shared_to, target_type, shared_id, view_id)
+            )
+
+            if not result:
+                raise ValueError("No matching shared view found")
+
+            return result[0]  # Expecting only one match
+    finally:
+        release_db_connection(conn)
