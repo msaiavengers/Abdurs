@@ -1,0 +1,88 @@
+def handle_create_share_global_view(params: Dict, dao: Tcaasdao):
+    logger.info(f"Creating and globally sharing view for user: {params.get('user')}")
+    try:
+        result = dao.create_and_share_global_view(params)
+        return {
+            "reportName": "SHARE_GLOBAL_VIEW",
+            "reportResponse": result
+        }
+    except Exception as e:
+        logger.error(f"Error in share_global_view: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error creating and sharing global view")
+
+
+
+
+dao
+
+def create_and_share_global_view(self, params: Dict) -> Dict:
+    conn = self.get_db_connection()
+    try:
+        conn.autocommit = False  # Start transaction block
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
+            user = params["user"]
+            logger.info(f"Global share - create main view that's being shared by {user}")
+            
+            view_id = self.create_view(params["view_template"], user, params["view_type"], cursor=cursor)
+            logger.info(f"Global share - Created view successfully with view_id {view_id}")
+            
+            shared_to = "ALL"
+            target_type = TargetType.GLOBAL
+            
+            logger.info(f"Global share - creating global_view_share for view_id {view_id}")
+            shared_id = self.create_global_view_share(view_id, shared_to, target_type, cursor=cursor)
+            logger.info(f"Global share - creating share_view entry")
+            self.share_view(view_id, shared_to, target_type, shared_id=shared_id, cursor=cursor)
+            
+            shared_view = self.get_shared_view_by_shared_id(shared_id, cursor=cursor)
+            logger.info(f"Global share - fetched global_view_share for shared_id {shared_view.get('shared_id')}")
+            
+            share_token = encode_share_token(
+                shared_id=shared_view["shared_id"],
+                view_id=shared_view["view_id"],
+                shared_to=shared_view["shared_to"],
+                target_type=shared_view["target_type"],
+                shared_at=shared_view["shared_at"]
+            )
+
+            conn.commit()
+            return {
+                "shared_id": shared_id,
+                "view_id": view_id,
+                "share_token": share_token
+            }
+    except Exception as e:
+        conn.rollback()
+        logger.error(f"Failed to create and share global view transactionally: {str(e)}")
+        raise
+    finally:
+        self.release_db_connection(conn)
+
+
+
+update some of the dao methods if cursor passed use that so 
+
+def create_view(self, view_name, view_template, owner_id, view_type, cursor=None):
+    print(f"tcahub_dao -> create_view view_name: {view_name}, {view_template}, {owner_id}, {view_type}")
+    
+    should_close_conn = False
+    if cursor is None:
+        conn = self.get_db_connection()
+        cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        should_close_conn = True
+
+    try:
+        cursor.execute(
+            """
+            INSERT INTO tcahub_views (view_name, view_template, owner_id, view_type)
+            VALUES (%s, %s, %s, %s) RETURNING view_id;
+            """,
+            (view_name, json.dumps(view_template), owner_id, view_type)
+        )
+        result = cursor.fetchone()
+        return result["view_id"] if result else None
+    finally:
+        if should_close_conn:
+            conn.commit()
+            cursor.close()
+            self.release_db_connection(conn)
