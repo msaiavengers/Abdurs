@@ -1,3 +1,6 @@
+def str_to_bool(val):
+    return str(val).lower() in ("true", "1", "yes")
+
 --version 7
             if not include_globally_owned_views:
                 # When include_globally_owned_views is False, skip views with global_share
