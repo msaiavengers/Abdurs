@@ -1,3 +1,54 @@
+--version6 option to toggle global shares
+def get_all_views_for_user(self, owner_id, groups, include_globally_owned_views=True):
+    conn = self.get_db_connection()
+    try:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
+            # Owned views
+            owned_views = self._fetch_view_details(cursor, "v.owner_id = %s", (owner_id,))
+
+            filtered_owned_views = []
+            for view in owned_views:
+                if view.get("global_share"):
+                    if include_globally_owned_views:
+                        filtered_owned_views.append({
+                            **view,
+                            "shares": view.get("shares", [])
+                        })
+                    # else: skip
+                else:
+                    filtered_owned_views.append(view)
+
+            # Shared views - user + groups
+            shared_to_list = [owner_id] + groups
+            shared_views_raw = self._fetch_view_details(cursor, "vs.shared_to = ANY(%s)", (shared_to_list,))
+
+            # Global views - shared to ALL but not owned by user
+            global_views_raw = self._fetch_view_details(
+                cursor,
+                "vs.shared_to = 'ALL' AND vs.target_type = 'GLOBAL' AND v.owner_id != %s",
+                (owner_id,)
+            )
+
+            shared_views = []
+            global_views = []
+
+            for view in shared_views_raw:
+                if view.get("global_share"):
+                    global_views.append(view["global_share"])
+                else:
+                    shared_views.append(view)
+
+            global_views = [view["global_share"] for view in global_views_raw if view.get("global_share")]
+
+            return {
+                "owned_views": filtered_owned_views,
+                "shared_views": shared_views,
+                "global_views": global_views
+            }
+    finally:
+        self.release_db_connection(conn)
+
+
 --versin 5 - option passing to hide
             filtered_owned_views = []
             for view in owned_views:
