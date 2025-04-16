@@ -1,3 +1,15 @@
+for view in owned_views:
+    if view.get("global_share"):
+        if include_globally_owned_views:
+            filtered_owned_views.append({
+                **view,
+                "shares": view.get("shares", []),
+                "global_share": view["global_share"]
+            })
+        # else: skip
+    else:
+        filtered_owned_views.append(view)
+
 --version6 option to toggle global shares
 def get_all_views_for_user(self, owner_id, groups, include_globally_owned_views=True):
     conn = self.get_db_connection()
