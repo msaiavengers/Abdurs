@@ -1,3 +1,13 @@
+--version 6
+
+            # Filter owned views based on global_share and include_globally_owned_views flag
+            if not include_globally_owned_views:
+                # Filter out views with global_share
+                filtered_owned_views = [view for view in owned_views if not view.get("global_share")]
+            else:
+                # Include all views (both with and without global_share)
+                filtered_owned_views = owned_views
+
 for view in owned_views:
     if view.get("global_share"):
         if include_globally_owned_views:
