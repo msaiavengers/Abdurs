@@ -1,3 +1,26 @@
+--versin 5 - option passing to hide
+            filtered_owned_views = []
+            for view in owned_views:
+                if view.get("global_share"):
+                    if hide_globally_shared_owned_views:
+                        continue  # skip this view entirely
+                    else:
+                        filtered_owned_views.append({
+                            "global_share": view["global_share"],
+                            "shares": view.get("shares", [])
+                        })
+                else:
+                    filtered_owned_views.append(view)
+
+--version 4 skip global shares
+for view in owned_views:
+    if view.get("global_share"):
+        logger.debug(f"Skipping global owned view {view['view_id']}")
+        continue
+    filtered_owned_views.append(view)
+
+
+
 --version 3 - dispolay shaees as well now
 
 def get_all_views_for_user(self, owner_id, groups):
