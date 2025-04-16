@@ -1,3 +1,15 @@
+--version 7
+            if not include_globally_owned_views:
+                # When include_globally_owned_views is False, skip views with global_share
+                for view in owned_views:
+                    if view.get("global_share"):
+                        logger.debug(f"Skipping global owned view {view['view_id']}")
+                        continue  # Skip views with global_share
+                    filtered_owned_views.append(view)
+            else:
+                # When include_globally_owned_views is True, include all owned views (with or without global_share)
+                filtered_owned_views = owned_views
+
 --version 6
 
             # Filter owned views based on global_share and include_globally_owned_views flag
