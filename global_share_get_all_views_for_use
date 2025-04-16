@@ -1,3 +1,56 @@
+--versin 2
+
+This will now filter our views details form owned views for any global shares and just have global_shares for that owened view
+def get_all_views_for_user(self, owner_id, groups):
+    conn = self.get_db_connection()
+    try:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
+            # Owned views
+            owned_views = self._fetch_view_details(cursor, "v.owner_id = %s", (owner_id,))
+            
+            # Rewrite owned_views to include global_share if it exists, and exclude the rest of the view if so
+            filtered_owned_views = []
+            for view in owned_views:
+                if view.get("global_share"):
+                    filtered_owned_views.append({
+                        "global_share": view["global_share"]
+                    })
+                else:
+                    filtered_owned_views.append(view)
+            
+            # Shared views - for user and groups (including GROUP target_type)
+            shared_to_list = [owner_id] + groups
+            shared_views_raw = self._fetch_view_details(cursor, "vs.shared_to = ANY(%s)", (shared_to_list,))
+            
+            # Global views - shared to ALL but not owned by the user
+            global_views_raw = self._fetch_view_details(
+                cursor,
+                "vs.shared_to = 'ALL' AND vs.target_type = 'GLOBAL' AND v.owner_id != %s",
+                (owner_id,)
+            )
+            
+            # Filter out global shares and extract global_view encoded strings
+            shared_views = []
+            global_views = []
+            
+            for view in shared_views_raw:
+                if view.get("global_share"):
+                    global_views.append(view["global_share"])
+                else:
+                    shared_views.append(view)
+                    
+            # Process global views
+            global_views = [view["global_share"] for view in global_views_raw if view.get("global_share")]
+            
+            return {
+                "owned_views": filtered_owned_views,
+                "shared_views": shared_views,
+                "global_views": global_views
+            }
+    finally:
+        self.release_db_connection(conn)
+
+
 import base64
 from datetime import datetime
 
